@@ -76,10 +76,14 @@ Prometheus.prototype.allMetrics = function () {
   return client.AggregatorRegistry.aggregate(values)
 }
 
+Prometheus.prototype.exponentialBuckets = function () {
+  return this.client.exponentialBuckets(2, 2, 15)
+}
+
 function registerMetrics (prometheus) {
   const { client, register } = prometheus
   let name
-  const log2Buckets = client.exponentialBuckets(2, 2, 15)
+  const log2Buckets = this.exponentialBuckets()
 
   name = 'http_request_duration_milliseconds'
   register.removeSingleMetric(name)
