@@ -83,7 +83,7 @@ Prometheus.prototype.exponentialBuckets = function () {
 function registerMetrics (prometheus) {
   const { client, register } = prometheus
   let name
-  const log2Buckets = this.exponentialBuckets()
+  const log2Buckets = prometheus.exponentialBuckets()
 
   name = 'http_request_duration_milliseconds'
   register.removeSingleMetric(name)
