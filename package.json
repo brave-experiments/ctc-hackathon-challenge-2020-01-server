@@ -94,6 +94,7 @@
     "hapi-swagger": "github:brave/hapi-swagger",
     "http-request-signature": "0.0.2",
     "inert": "^4.2.1",
+    "lodash": "^4.17.15",
     "moment": "^2.22.1",
     "mongodb": "^2.2.35",
     "monk": "6.0.5",
