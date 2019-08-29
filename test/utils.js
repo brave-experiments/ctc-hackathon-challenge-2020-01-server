@@ -10,13 +10,17 @@ const uuidV4 = require('uuid/v4')
 const redis = require('redis')
 const BigNumber = require('bignumber.js')
 const {
+  justDate,
   timeout
 } = require('bat-utils/lib/extras-utils')
 const SDebug = require('sdebug')
 const debug = new SDebug('test')
-
+const today = new Date()
 const braveYoutubeOwner = 'publishers#uuid:' + uuidV4().toLowerCase()
 const braveYoutubePublisher = `youtube#channel:UCFNTTISby1c_H-rm5Ww5rZg`
+const {
+  createSnapshot
+} = require('../eyeshade/workers/reports')
 
 const eyeshadeCollections = [
   'grants',
@@ -160,6 +164,7 @@ const cleanRedisDb = async () => {
 
 module.exports = {
   readJSONFile,
+  checkSnapshot,
   makeSettlement,
   insertReferralInfos,
   createSurveyor,
@@ -167,6 +172,7 @@ module.exports = {
   fetchReport,
   formURL,
   ok,
+  today,
   debug,
   status,
   eyeshadeAgent,
@@ -273,6 +279,7 @@ function makeSettlement (type, balance, overwrites = {}) {
   }, overwrites)
 }
 
+<<<<<<< HEAD
 async function insertReferralInfos (client) {
   const ratesPaths = [{
     path: filePath('0010_geo_referral', 'seeds', 'groups.sql')
@@ -290,4 +297,32 @@ async function insertReferralInfos (client) {
 
 function readJSONFile (...paths) {
   return JSON.parse(fs.readFileSync(path.join(__dirname, ...paths)).toString())
+}
+
+async function checkSnapshot (t, debug, runtime, expected = { top: {}, votes: [], transactions: [] }) {
+  const justDateToday = justDate(today)
+  const url = `/v1/stats/aggregate/${justDateToday}`
+
+  await runtime.postgres.query(`delete from snapshots;`)
+
+  await createSnapshot(debug, runtime, {
+    date: justDateToday
+  })
+
+  const { body: after } = await eyeshadeAgent
+    .get(url)
+    .expect(ok)
+  const sanitizedAfter = sanitizeSnapshot(after)
+  const sanitizedExpected = sanitizeSnapshot(after)
+  // console.log(JSON.stringify(sanitizedAfter, null, 2))
+  t.deepEqual(sanitizedAfter, sanitizedExpected, 'snapshot structure should be known')
+}
+
+function sanitizeSnapshot (snapshot) {
+  return Object.assign({}, snapshot, {
+    top: _.mapObject(snapshot.top, (list) => {
+      return _.map(list, (item) => _.omit(item, 'id'))
+    }),
+    transactions: _.map(snapshot.transactions, (tx) => _.omit(tx, ['amount']))
+  })
 }

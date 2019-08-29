@@ -2,6 +2,7 @@ const moment = require('moment')
 const {
   updateBalances
 } = require('../lib/transaction')
+const snapshotsLib = require('../lib/snapshots')
 
 const freezeInterval = process.env.FREEZE_SURVEYORS_AGE_DAYS
 
@@ -18,6 +19,9 @@ const daily = async (debug, runtime) => {
     await database.purgeSince(debug, runtime, midnight)
 
     await freezeOldSurveyors(debug, runtime)
+    await createSnapshot(debug, runtime, {
+      date: midnight.toISOString()
+    })
   } catch (ex) {
     runtime.captureException(ex)
     debug('daily', { reason: ex.toString(), stack: ex.stack })
@@ -31,6 +35,7 @@ const daily = async (debug, runtime) => {
 
 exports.name = 'reports'
 exports.freezeOldSurveyors = freezeOldSurveyors
+exports.createSnapshot = createSnapshot
 
 /*
   olderThanDays: int
@@ -87,4 +92,18 @@ async function updateBalancesOnInterval (runtime) {
   const hours6 = 1000 * 60 * 60 * 6
   const msUntilNext = hours6 - (now % hours6)
   setTimeout(() => updateBalancesOnInterval(runtime), msUntilNext)
+}
+
+async function createSnapshot (debug, runtime, payload) {
+  const client = await runtime.postgres.connect()
+  try {
+    await snapshotsLib.generateSnapshot(runtime, client, payload)
+  } catch (e) {
+    debug(e)
+    runtime.captureException(e, {
+      extra: payload
+    })
+  } finally {
+    client.release()
+  }
 }
