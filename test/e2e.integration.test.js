@@ -354,7 +354,7 @@ function readFile (structure) {
   return fs.readFileSync(path.join(__dirname, ...structure))
 }
 
-test('ledger : grant contribution workflow with uphold BAT wallets', async t => {
+test('ledger : grant contribution workflow with uphold BAT wallet', async t => {
   // Create surveyors
   const surveyorId = (await createSurveyor({ rate: 1, votes: 12 })).body.surveyorId
 
@@ -469,6 +469,7 @@ test('ledger : grant contribution workflow with uphold BAT wallets', async t => 
   if (err) throw err
 
   t.true(response.body.grants.length === 0)
+
   // TODO test settlement flow
 })
 
