@@ -97,7 +97,9 @@ async function updateBalancesOnInterval (runtime) {
 async function createSnapshot (debug, runtime, payload) {
   const client = await runtime.postgres.connect()
   try {
-    await snapshotsLib.generateSnapshot(runtime, client, payload)
+    await snapshotsLib.generateSnapshot(runtime, client, {
+      date: new Date(payload.date)
+    })
   } catch (e) {
     debug(e)
     runtime.captureException(e, {

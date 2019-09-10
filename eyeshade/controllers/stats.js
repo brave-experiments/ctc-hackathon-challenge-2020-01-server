@@ -128,6 +128,8 @@ v1.snapshotStats = {
   },
   response: {
     schema: Joi.object().keys({
+      targetDate: requiredDate.description('the date that the snapshot is for'),
+      createdAt: requiredDate.description('when the snapshot was taken'),
       top: Joi.object().pattern(/\w+/, Joi.array().items(Joi.object().keys({
         balance: numeric.required().description('the balance of this top publisher'),
         id: Joi.string().required().description('id of the top channel'),
@@ -144,7 +146,7 @@ v1.snapshotStats = {
         amount: numeric.required().description('a count of the amount transferred'),
         type: Joi.string().required().description('the type of transaction being counted')
       }).description('a transaction type snapshot'))
-    }).unknown(true).description('a single snapshot')
+    }).description('a single snapshot')
   }
 }
 
@@ -167,7 +169,7 @@ function snapshotStatsHandler (runtime) {
       const result = await snapshotsLib.getSnapshot(runtime, client, {
         date
       })
-      reply(result ? result.data : boom.notFound('that date was not found'))
+      return reply(result || boom.notFound('that date was not found'))
     } catch (e) {
       reply(boom.boomify(e))
     } finally {

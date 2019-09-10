@@ -90,5 +90,22 @@
       "channel": "11"
     }
   ],
-  "transactions": []
+  "transactions": [
+    {
+      "type": "contribution",
+      "channel": "11"
+    },
+    {
+      "type": "contribution_settlement",
+      "channel": "1"
+    },
+    {
+      "type": "fees",
+      "channel": "1"
+    },
+    {
+      "type": "referral",
+      "channel": "1"
+    }
+  ]
 }

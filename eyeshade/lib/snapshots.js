@@ -42,14 +42,25 @@ module.exports = {
   aggregateTransactions,
   aggregateVotes,
   generateSnapshot,
-  generateSnapshotFromData,
+  insertSnapshot,
   getSnapshot
 }
 
 async function getSnapshot (runtime, client, options) {
   const { date } = options
   const { rows } = await client.query(getSnapshotsQuery, [date.toISOString()])
-  return rows[0]
+  const snapshot = rows[0]
+  if (!snapshot) {
+    return
+  }
+  const {
+    data,
+    created_at: createdAt,
+    target_date: targetDate
+  } = snapshot
+  data.createdAt = createdAt
+  data.targetDate = targetDate
+  return data
 }
 
 async function aggregateTransactions (runtime, client) {
@@ -76,11 +87,12 @@ async function topEarners (runtime, client, options) {
 }
 
 async function generateSnapshot (runtime, client, options) {
-  const { date: d } = options
-  const date = new Date(d)
-  const args = { date }
-  const votesPromise = aggregateVotes(runtime, client, args)
-  const transactionsPromise = aggregateTransactions(runtime, client, args)
+  const snapshot = await getSnapshot(runtime, client, options)
+  if (snapshot) {
+    return
+  }
+  const votesPromise = aggregateVotes(runtime, client, options)
+  const transactionsPromise = aggregateTransactions(runtime, client, options)
   const topPromise = topEarners(runtime, client, {
     limit: 100
   })
@@ -98,13 +110,13 @@ async function generateSnapshot (runtime, client, options) {
     votes,
     transactions
   }
-  await generateSnapshotFromData(runtime, client, {
-    date,
+  await insertSnapshot(runtime, client, {
+    date: options.date,
     data
   })
 }
 
-async function generateSnapshotFromData (runtime, client, options) {
+async function insertSnapshot (runtime, client, options) {
   const { date, data } = options
   await client.query(insertSnapshotQuery, [date, data])
 }

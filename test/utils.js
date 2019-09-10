@@ -18,6 +18,7 @@ const debug = new SDebug('test')
 const today = new Date()
 const braveYoutubeOwner = 'publishers#uuid:' + uuidV4().toLowerCase()
 const braveYoutubePublisher = `youtube#channel:UCFNTTISby1c_H-rm5Ww5rZg`
+const defaultSnapshotStructure = { top: {}, votes: [], transactions: [] }
 const {
   createSnapshot
 } = require('../eyeshade/workers/reports')
@@ -280,6 +281,7 @@ function makeSettlement (type, balance, overwrites = {}) {
 }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 async function insertReferralInfos (client) {
   const ratesPaths = [{
     path: filePath('0010_geo_referral', 'seeds', 'groups.sql')
@@ -299,7 +301,7 @@ function readJSONFile (...paths) {
   return JSON.parse(fs.readFileSync(path.join(__dirname, ...paths)).toString())
 }
 
-async function checkSnapshot (t, debug, runtime, expected = { top: {}, votes: [], transactions: [] }) {
+async function checkSnapshot (t, debug, runtime, expected = defaultSnapshotStructure) {
   const justDateToday = justDate(today)
   const url = `/v1/stats/aggregate/${justDateToday}`
 
@@ -312,14 +314,15 @@ async function checkSnapshot (t, debug, runtime, expected = { top: {}, votes: []
   const { body: after } = await eyeshadeAgent
     .get(url)
     .expect(ok)
-  const sanitizedAfter = sanitizeSnapshot(after)
-  const sanitizedExpected = sanitizeSnapshot(after)
-  // console.log(JSON.stringify(sanitizedAfter, null, 2))
+  const sanitizedAfter = sanitizeSnapshot(justDateToday, after)
+  const sanitizedExpected = sanitizeSnapshot(justDateToday, expected)
   t.deepEqual(sanitizedAfter, sanitizedExpected, 'snapshot structure should be known')
 }
 
-function sanitizeSnapshot (snapshot) {
-  return Object.assign({}, snapshot, {
+function sanitizeSnapshot (date, snapshot) {
+  return Object.assign({}, defaultSnapshotStructure, snapshot, {
+    createdAt: '',
+    targetDate: (new Date(date)).toISOString(),
     top: _.mapObject(snapshot.top, (list) => {
       return _.map(list, (item) => _.omit(item, 'id'))
     }),
