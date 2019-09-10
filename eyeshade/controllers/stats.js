@@ -127,7 +127,7 @@ v1.snapshotStats = {
     })
   },
   response: {
-    schema: Joi.object().keys({
+    schema: Joi.array().items(Joi.object().keys({
       targetDate: requiredDate.description('the date that the snapshot is for'),
       createdAt: requiredDate.description('when the snapshot was taken'),
       top: Joi.object().pattern(/\w+/, Joi.array().items(Joi.object().keys({
@@ -146,7 +146,7 @@ v1.snapshotStats = {
         amount: numeric.required().description('a count of the amount transferred'),
         type: Joi.string().required().description('the type of transaction being counted')
       }).description('a transaction type snapshot'))
-    }).description('a single snapshot')
+    }).description('a single snapshot'))
   }
 }
 
@@ -166,10 +166,10 @@ function snapshotStatsHandler (runtime) {
     const client = await runtime.postgres.connect()
     const date = new Date(decodeURIComponent(params.date))
     try {
-      const result = await snapshotsLib.getSnapshot(runtime, client, {
-        date
+      const result = await snapshotsLib.getSnapshots(runtime, client, {
+        start: date
       })
-      return reply(result || boom.notFound('that date was not found'))
+      return reply(result.length ? result : boom.notFound('that date was not found'))
     } catch (e) {
       reply(boom.boomify(e))
     } finally {

@@ -106,12 +106,12 @@ test('referrals are inserted into mongo then eventually postgres', async t => {
   t.true(referralDocs.length === 1)
 
   await ensureReferrals(runtime, 1)
-  await checkSnapshot(t, debug, runtime, {
+  await checkSnapshots(t, debug, runtime, [{
     transactions: [{
       type: 'referral',
       channel: '1'
     }]
-  })
+  }])
 })
 
 test('duplicate referrals will not be inserted into mongo', async t => {

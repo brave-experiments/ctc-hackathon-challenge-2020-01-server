@@ -1,7 +1,8 @@
 const getSnapshotsQuery = `
 SELECT *
 FROM snapshots
-WHERE target_date = $1;
+WHERE target_date >= $1
+  AND target_date < $2;
 `
 const topEarnersByType = `
 SELECT
@@ -30,8 +31,8 @@ FROM transactions
 GROUP BY transaction_type;
 `
 const insertSnapshotQuery = `
-INSERT INTO snapshots (target_date, data)
-VALUES ($1, $2);
+INSERT INTO snapshots (target_date, transactions, votes, top)
+VALUES ($1, $2, $3, $4);
 `
 const distinctAccountTypes = `
 SELECT distinct account_type as type
@@ -43,24 +44,26 @@ module.exports = {
   aggregateVotes,
   generateSnapshot,
   insertSnapshot,
-  getSnapshot
+  getSnapshots
 }
 
-async function getSnapshot (runtime, client, options) {
-  const { date } = options
-  const { rows } = await client.query(getSnapshotsQuery, [date.toISOString()])
-  const snapshot = rows[0]
-  if (!snapshot) {
-    return
-  }
-  const {
-    data,
+async function getSnapshots (runtime, client, options) {
+  const { start, end } = options
+  const endDate = end || new Date(+start + (1000 * 60 * 60 * 24))
+  const { rows } = await client.query(getSnapshotsQuery, [start.toISOString(), endDate.toISOString()])
+  return rows.map(({
+    transactions,
+    votes,
+    top,
     created_at: createdAt,
     target_date: targetDate
-  } = snapshot
-  data.createdAt = createdAt
-  data.targetDate = targetDate
-  return data
+  }) => ({
+    createdAt,
+    targetDate,
+    transactions,
+    votes,
+    top
+  }))
 }
 
 async function aggregateTransactions (runtime, client) {
@@ -87,8 +90,10 @@ async function topEarners (runtime, client, options) {
 }
 
 async function generateSnapshot (runtime, client, options) {
-  const snapshot = await getSnapshot(runtime, client, options)
-  if (snapshot) {
+  const snapshot = await getSnapshots(runtime, client, {
+    start: options.date
+  })
+  if (snapshot.length) {
     return
   }
   const votesPromise = aggregateVotes(runtime, client, options)
@@ -106,17 +111,16 @@ async function generateSnapshot (runtime, client, options) {
     topPromise
   ])
   const data = {
+    date: options.date,
     top,
     votes,
     transactions
   }
-  await insertSnapshot(runtime, client, {
-    date: options.date,
-    data
-  })
+  await insertSnapshot(runtime, client, data)
 }
 
 async function insertSnapshot (runtime, client, options) {
-  const { date, data } = options
-  await client.query(insertSnapshotQuery, [date, data])
+  const { date, transactions, votes, top } = options
+  // created_at is created for us
+  await client.query(insertSnapshotQuery, [date, JSON.stringify(transactions), JSON.stringify(votes), top])
 }

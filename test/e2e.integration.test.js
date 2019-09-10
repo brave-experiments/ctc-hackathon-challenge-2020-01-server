@@ -338,6 +338,7 @@ WHERE
   t.true(amount > 0)
 
   const file = readFile(['structures', 'json', 'user-contribution.json'])
+  await timeout(5000)
   await checkSnapshot(t, debug, runtime, JSON.parse(file.toString()))
 
   async function getReferrals () {

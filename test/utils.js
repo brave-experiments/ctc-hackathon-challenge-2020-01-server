@@ -165,7 +165,7 @@ const cleanRedisDb = async () => {
 
 module.exports = {
   readJSONFile,
-  checkSnapshot,
+  checkSnapshots,
   makeSettlement,
   insertReferralInfos,
   createSurveyor,
@@ -280,8 +280,6 @@ function makeSettlement (type, balance, overwrites = {}) {
   }, overwrites)
 }
 
-<<<<<<< HEAD
-<<<<<<< HEAD
 async function insertReferralInfos (client) {
   const ratesPaths = [{
     path: filePath('0010_geo_referral', 'seeds', 'groups.sql')
@@ -301,7 +299,7 @@ function readJSONFile (...paths) {
   return JSON.parse(fs.readFileSync(path.join(__dirname, ...paths)).toString())
 }
 
-async function checkSnapshot (t, debug, runtime, expected = defaultSnapshotStructure) {
+async function checkSnapshots (t, debug, runtime, expected) {
   const justDateToday = justDate(today)
   const url = `/v1/stats/aggregate/${justDateToday}`
 
@@ -319,13 +317,13 @@ async function checkSnapshot (t, debug, runtime, expected = defaultSnapshotStruc
   t.deepEqual(sanitizedAfter, sanitizedExpected, 'snapshot structure should be known')
 }
 
-function sanitizeSnapshot (date, snapshot) {
-  return Object.assign({}, defaultSnapshotStructure, snapshot, {
+function sanitizeSnapshot (date, snapshots) {
+  return snapshots.map((snapshot) => Object.assign({}, defaultSnapshotStructure, snapshot, {
     createdAt: '',
     targetDate: (new Date(date)).toISOString(),
     top: _.mapObject(snapshot.top, (list) => {
       return _.map(list, (item) => _.omit(item, 'id'))
     }),
     transactions: _.map(snapshot.transactions, (tx) => _.omit(tx, ['amount']))
-  })
+  }))
 }
