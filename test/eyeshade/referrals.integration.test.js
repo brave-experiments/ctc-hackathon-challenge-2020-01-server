@@ -11,7 +11,7 @@ import {
   eyeshadeAgent,
   readJSONFile,
   connectToDb,
-  checkSnapshot,
+  checkSnapshots,
   braveYoutubePublisher
 } from '../utils'
 import {

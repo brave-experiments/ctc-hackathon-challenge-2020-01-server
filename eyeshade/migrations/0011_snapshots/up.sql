@@ -1,6 +1,6 @@
 select execute($$
 
-insert into migrations (id, description) values ('0010', 'snapshots');
+insert into migrations (id, description) values ('0011', 'snapshots');
 
 create table snapshots(
   id               uuid primary key default uuid_generate_v4(),
@@ -11,4 +11,4 @@ create table snapshots(
   votes            jsonb not null
 );
 
-$$) where not exists (select * from migrations where id = '0010');
+$$) where not exists (select * from migrations where id = '0011');
