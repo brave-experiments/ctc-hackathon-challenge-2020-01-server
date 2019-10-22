@@ -116,7 +116,8 @@ v1.settlementsStats = {
 v1.snapshotStats = {
   handler: snapshotStatsHandler,
   auth: {
-    strategy: 'simple',
+    strategy: 'simple-scoped-token',
+    scope: ['global', 'stats'],
     mode: 'required'
   },
   description: 'Retrieves information about bat paid out in referrals',

@@ -422,4 +422,11 @@ const Server = async (options, runtime) => {
   return server
 }
 
-module.exports = Server
+module.exports = async (...args) => {
+  try {
+    const server = await Server(...args)
+    return server
+  } catch (e) {
+    console.error(e)
+  }
+}

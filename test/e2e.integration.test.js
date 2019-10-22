@@ -32,7 +32,7 @@ import {
   createSurveyor,
   debug,
   statsUrl,
-  checkSnapshot,
+  checkSnapshots,
   connectToDb
 } from './utils'
 import {
@@ -339,7 +339,7 @@ WHERE
 
   const file = readFile(['structures', 'json', 'user-contribution.json'])
   await timeout(5000)
-  await checkSnapshot(t, debug, runtime, JSON.parse(file.toString()))
+  await checkSnapshots(t, debug, runtime, JSON.parse(file.toString()))
 
   async function getReferrals () {
     const {
