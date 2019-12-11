@@ -130,7 +130,7 @@ test('stats for grants', async (t) => {
 
     let votingStats = {}
     const expectedAmount = (new BigNumber(0.95)).toPrecision(18).toString()
-    while (!(+votingStats.amount) === +expectedAmount) {
+    while ((+votingStats.amount) === +expectedAmount) {
       await timeout(2000)
       votingStats = await getStatsFor('grants', cohort, {
         start: now
