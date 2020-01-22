@@ -66,6 +66,14 @@ const services = {
 
       uphold()
     }
+  },
+
+  igbgd: {
+    portno: 3004,
+
+    f: () => {
+      delete module.exports.currency
+    }
   }
 }
 
@@ -103,6 +111,7 @@ process.env.PORT = process.env.PORT  || service.portno
 const SERVICE = process.env.SERVICE.toUpperCase()
 new Array('MONGODB_URI', 'GITHUB_CLIENT_ID', 'GITHUB_CLIENT_SECRET', 'SLACK_CHANNEL', 'SLACK_ICON_URL').forEach((v) => {
   process.env[v] = process.env[v]  || process.env[SERVICE + '_' + v]
+  if (process.env[v] === "undefined") delete process.env[v]
 })
 
 module.exports =
@@ -145,9 +154,9 @@ module.exports =
 , wallet                : { }
 
 , testingCohorts        : process.env.TESTING_COHORTS ? process.env.TESTING_COHORTS.split(',') : []
-, currency:
-  { url: process.env.BAT_RATIOS_URL || false
-  , access_token: process.env.BAT_RATIOS_TOKEN || false
+, currency              :
+  { url                 : process.env.BAT_RATIOS_URL   || false
+  , access_token        : process.env.BAT_RATIOS_TOKEN || false
   }
 }
 if (service.f) service.f()
@@ -215,3 +224,5 @@ module.exports.prometheus =
   { label              : process.env.SERVICE + '.' + (process.env.DYNO || 1)
   , redis              : process.env.REDIS2_URL               || process.env.REDIS_URL               ||  false
   }
+
+console.log('!!! module.exports=' + JSON.stringify(module.exports,null,2))

@@ -1,0 +1,26 @@
+version: "2.1"
+
+networks:
+  igbgd:
+    driver: bridge
+
+services:
+  redis:
+    container_name: igbgd-redis
+    image: redis:latest
+    networks:
+      - igbgd
+  igbgd-web:
+    container_name: igbgd-web
+    ports:
+      - "3003:3003"
+    command: "npm run igbgd-server"
+    extends:
+      file: ../base.yml
+      service: ledger
+    environment:
+      - "SERVICE=igbgd"
+    depends_on:
+      - redis
+    networks:
+      - igbgd

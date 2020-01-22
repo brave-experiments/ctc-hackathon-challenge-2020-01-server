@@ -1,7 +1,7 @@
 {
-  "name": "bat-ledger",
-  "version": "0.9.0",
-  "description": "A BAT micropayments system for users and publishers.",
+  "name": "ctc-hackathon-challenge-2020-01-server",
+  "version": "0.0.1",
+  "description": "Iguana Be Gonna!",
   "main": "index.js",
   "scripts": {
     "ava": "ava",
@@ -9,19 +9,22 @@
     "build": "npm run build-utils && npm run build-ledger && npm run build-eyeshade && npm run build-balance && cp config.js dist/config.js",
     "build-balance": "babel balance --ignore **/*.test.js -d dist/balance",
     "build-eyeshade": "babel eyeshade --ignore **/*.test.js -d dist/eyeshade && cp -R eyeshade/migrations/* dist/eyeshade/migrations/",
+    "build-igbgd": "babel igbgd --ignore **/*.test.js -d dist/igbgd",
     "build-ledger": "babel ledger --ignore **/*.test.js -d dist/ledger",
     "build-utils": "babel bat-utils --ignore **/*.test.js -d dist/bat-utils && cp bat-utils/package.json dist/bat-utils/package.json",
     "eyeshade-server": "NODE_PATH=dist node --optimize_for_size --max_old_space_size=460 --gc_interval=100 dist/eyeshade/server.js",
     "eyeshade-worker": "NODE_PATH=dist node --optimize_for_size --max_old_space_size=460 --gc_interval=100 dist/eyeshade/worker.js",
     "eyeshade-consumer": "NODE_PATH=dist node --optimize_for_size --max_old_space_size=460 --gc_interval=100 dist/eyeshade/consumer.js",
     "heroku-postbuild": "npm run build",
+    "igbgd-server": "NODE_PATH=dist node --optimize_for_size --max_old_space_size=460 --gc_interval=100 dist/igbgd/server.js",
     "ledger-server": "NODE_PATH=dist node --optimize_for_size --max_old_space_size=460 --gc_interval=100 dist/ledger/server.js",
     "ledger-worker": "NODE_PATH=dist node --optimize_for_size --max_old_space_size=460 --gc_interval=100 dist/ledger/worker.js",
-    "start": "echo use 'npm run start-[ledger|eyeshade|balance]' or 'npm run start-[ledger|eyeshade]-worker'",
+    "start": "npm run start-igbgd",
     "start-balance": "NODE_PATH=. DEBUG=*,-babel*,-mongo:*,mongo:queries SERVICE=balance ./node_modules/.bin/babel-node balance/server.js",
     "start-eyeshade": "NODE_PATH=. DEBUG=*,-babel*,-mongo:*,mongo:queries SERVICE=eyeshade ./node_modules/.bin/babel-node eyeshade/server.js",
     "start-eyeshade-worker": "NODE_PATH=. DEBUG=*,-babel*,-mongo:*,mongo:queries SERVICE=eyeshade ./node_modules/.bin/babel-node --optimize_for_size --max_old_space_size=460 --gc_interval=100 eyeshade/worker.js",
     "start-eyeshade-consumer": "NODE_PATH=. DEBUG=*,-babel*,-mongo:*,mongo:queries SERVICE=eyeshade ./node_modules/.bin/babel-node --optimize_for_size --max_old_space_size=460 --gc_interval=100 eyeshade/consumer.js",
+    "start-igbgd": "NODE_PATH=. DEBUG=*,-babel*,-mongo:*,mongo:queries SERVICE=igbgd ./node_modules/.bin/babel-node igbgd/server",
     "start-ledger": "NODE_PATH=. DEBUG=*,-babel*,-mongo:*,mongo:queries SERVICE=ledger ./node_modules/.bin/babel-node ledger/server.js",
     "start-ledger-worker": "NODE_PATH=. DEBUG=*,-babel*,-mongo:*,mongo:queries SERVICE=ledger ./node_modules/.bin/babel-node --optimize_for_size --max_old_space_size=460 --gc_interval=100 ledger/worker.js",
     "test": "nyc --reporter=html --reporter=text npm run test-all",
@@ -59,14 +62,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/brave-intl/bat-ledger.git"
+    "url": "https://github.com/brave-experiments/ctc-hackathon-challenge-2020-01-server.git"
   },
   "author": "Brave Developers <support@brave.com>",
   "license": "MPL-2.0",
   "bugs": {
-    "url": "https://github.com/brave-intl/bat-ledger/issues"
+    "url": "https://github.com/brave-experiments/ctc-hackathon-challenge-2020-01-server/issues"
   },
-  "homepage": "https://github.com/brave-intl/bat-ledger",
+  "homepage": "https://github.com/brave-experiments/ctc-hackathon-challenge-2020-01-server",
   "dependencies": {
     "@babel/cli": "^7.6.2",
     "@babel/node": "^7.6.2",
@@ -108,7 +111,6 @@
     "monotonic-timestamp": "0.0.9",
     "netmask": "1.0.6",
     "newrelic": "^4.1.1",
-    "node-anonize2-relic": "0.1.6",
     "node-slack": "0.0.7",
     "nyc": "^14.1.1",
     "pg": "^7.12.1",

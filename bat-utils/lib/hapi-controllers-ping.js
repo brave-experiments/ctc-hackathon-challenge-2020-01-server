@@ -26,4 +26,6 @@ v1.ping = {
     { schema: Joi.object().keys().unknown(true).description('static properties of the server') }
 }
 
+if ((process.env.NODE_ENV === 'development') && (process.env.GITHUB_FORCE_HTTPS === 'false')) delete v1.ping.auth
+
 module.exports.routes = [ braveHapi.routes.async().path('/v1/ping').config(v1.ping) ]
