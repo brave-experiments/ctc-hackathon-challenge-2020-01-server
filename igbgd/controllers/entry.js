@@ -99,8 +99,6 @@ v1.getEntries = {
 v1.postEntry = {
   handler: (runtime) => {
     return async (request, h) => {
-      console.log('!!! payload=' + JSON.stringify(request.payload, null, 2))
-
       const payload = request.payload
       const privateID = payload.privateID
       const entries = runtime.database.get('entries', debug)
