@@ -105,6 +105,7 @@
     "hapi-require-https": "^4.0.0",
     "hapi-swagger": "^11.0.1",
     "http-request-signature": "0.0.2",
+    "image-size": "^0.8.3",
     "moment": "^2.22.1",
     "mongodb": "^3.3.3",
     "monk": "^7.1.1",

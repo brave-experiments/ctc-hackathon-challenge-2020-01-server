@@ -1,6 +1,7 @@
 const Joi = require('@hapi/joi')
 const boom = require('boom')
 const bson = require('bson')
+const imagesize = require('image-size')
 const underscore = require('underscore')
 const uuidV4 = require('uuid/v4')
 
@@ -17,8 +18,10 @@ const joikeys = {
     description: Joi.string().optional()
   },
   image: {
-    data: Joi.string().base64({ paddingRequired: false }).description('base64 encoding'),
-    format: Joi.string().regex(/^png$/).default('png')
+    data: Joi.string().base64().description('base64 encoding'),
+    format: Joi.string().valid('png'),
+    width: Joi.number().positive().optional(),
+    height: Joi.number().positive().optional()
   },
   limit: Joi.number().positive().max(25).optional().description('the maximum number of entries to return'),
   location: {
@@ -166,6 +169,10 @@ v1.postEntry = {
       if (match) throw boom.badData('entry already exists: ' + privateID)
 
       const publicID = uuidV4().toLowerCase()
+      const image = imagesize(Buffer.from(payload.image.data, 'base64'))
+      image.format = image.type
+      underscore.extend(payload.image, underscore.pick(image, [ 'format', 'width', 'height' ]))
+
       try {
         await entries.insert(underscore.extend(underscore.pick(payload, [ 'privateID', 'category', 'image', 'description' ]), {
           publicID: publicID,
@@ -180,6 +187,11 @@ v1.postEntry = {
 
       match = await entries.findOne({ privateID: privateID })
       if (!match) throw boom.badImplementation('database creation failed: ' + privateID)
+
+      const entry = underscore.extend({ privateID: privateID }, m2e(match))
+      entry.image.data = '...'
+      runtime.notify(debug, { text: 'create ' + JSON.stringify(entry) })
+      console.log('!!!')
 
       return { publicID: publicID }
     }
@@ -201,9 +213,6 @@ v1.postEntry = {
   response: {
     schema: Joi.object().keys(underscore.pick(joikeys.entry, [ 'publicID' ]))
   }
-}
-
-if ((process.env.NODE_ENV === 'development') && (process.env.GITHUB_FORCE_HTTPS === 'false')) {
 }
 
 module.exports.routes = [

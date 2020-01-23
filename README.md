@@ -46,13 +46,17 @@ Create an application:
 
 - `Deploy` using the GitHub method pointing to this repository and the `igbgd` branch.
 
-- Under `Settings` use https://github.com/heroku/heroku-buildpack-multi.git for the buildpack.
+- Under `Settings` use `heroku/nodejs` for the buildpack.
 
-- Add `Resources` for MongoDB, Redis, and Papertrail (or Logentries).
+- Add `Resources` for MongoDB, Redis, and Papertrail (or Timber.io).
 
 - Copy the configuration variables from `.env.example` to `Settings` (except for the lines that starts with `"x"`).
 
     - The configuration variables for `MONGODB_URI` and `REDIS_URL` are automatically added by Heroku.
+
+    - The configuration variable `HOST` must be set to the Heroku application domain, e.g., `"igbgd.herokuapp.com"`
+
+- Under `Settings` configure the SSL Certificate using "Automatic Certificate Management"
 
 # API
 
@@ -134,6 +138,8 @@ the server returns an array of entries:
       , "image":
          { "data"     : "..."
          , "format"   : "png"
+         , "width"    : 64
+         , "height"   : 64
         }
       }
     ]
@@ -159,5 +165,7 @@ the server returns that entry:
     , "image":
        { "data"     : "..."
        , "format"   : "png"
+       , "width"    : 64
+       , "height"   : 64
       }
     }
