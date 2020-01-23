@@ -49,7 +49,7 @@ v1.login = {
       } catch (e) {
         runtime.notify(debug, {
           channel: '#devops-bot',
-          text: 'login failed ' + credentials.provider + ' ' + credentials.profile.email
+          text: 'login failed ' + credentials.provider + ' ' + credentials.profile.email + ': no membership'
         })
         throw e
       }
