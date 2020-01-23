@@ -42,6 +42,18 @@ you may choose to generate your own pseudo-random string.
 
 # Heroku Installation
 
+Create an application:
+
+- `Deploy` using the GitHub method pointing to this repository and the `igbgd` branch.
+
+- Under `Settings` use https://github.com/heroku/heroku-buildpack-multi.git for the buildpack.
+
+- Add `Resources` for mongodb, redis, and papertrail.
+
+- Copy the configuration variables from `.env.example` to `Settings` (except for the lines that starts with `"x"`)
+
+
+
 # API
 
 ## Create an entry

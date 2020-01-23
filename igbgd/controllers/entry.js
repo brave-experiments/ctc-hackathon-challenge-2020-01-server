@@ -204,7 +204,6 @@ v1.postEntry = {
 }
 
 if ((process.env.NODE_ENV === 'development') && (process.env.GITHUB_FORCE_HTTPS === 'false')) {
-  underscore.keys(v1).forEach((method) => { delete v1[method].auth })
 }
 
 module.exports.routes = [
@@ -214,6 +213,11 @@ module.exports.routes = [
 ]
 
 module.exports.initialize = async (debug, runtime) => {
+  // do not require access tokens on a development server lacking https
+  if ((process.env.NODE_ENV === 'development') && (runtime.config.server.protocol === 'http:')) {
+    underscore.keys(v1).forEach((method) => { delete v1[method].auth })
+  }
+
   runtime.database.checkIndices(debug, [
     {
       category: runtime.database.get('entries', debug),

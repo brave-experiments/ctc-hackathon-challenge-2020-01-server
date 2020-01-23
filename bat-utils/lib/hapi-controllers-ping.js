@@ -26,6 +26,11 @@ v1.ping = {
     { schema: Joi.object().keys().unknown(true).description('static properties of the server') }
 }
 
-if ((process.env.NODE_ENV === 'development') && (process.env.GITHUB_FORCE_HTTPS === 'false')) delete v1.ping.auth
-
 module.exports.routes = [ braveHapi.routes.async().path('/v1/ping').config(v1.ping) ]
+
+module.exports.initialize = async (debug, runtime) => {
+// do not require login to do a ping on a development server lacking github login
+  if ((process.env.NODE_ENV === 'development') && (!runtime.config.login.github)) {
+    _.keys(v1).forEach((method) => { delete v1[method].auth })
+  }
+}
