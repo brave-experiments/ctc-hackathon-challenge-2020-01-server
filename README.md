@@ -48,11 +48,11 @@ Create an application:
 
 - Under `Settings` use https://github.com/heroku/heroku-buildpack-multi.git for the buildpack.
 
-- Add `Resources` for mongodb, redis, and papertrail.
+- Add `Resources` for MongoDB, Redis, and Papertrail (or Logentries).
 
-- Copy the configuration variables from `.env.example` to `Settings` (except for the lines that starts with `"x"`)
+- Copy the configuration variables from `.env.example` to `Settings` (except for the lines that starts with `"x"`).
 
-
+    - The configuration variables for `MONGODB_URI` and `REDIS_URL` are automatically added by Heroku.
 
 # API
 
