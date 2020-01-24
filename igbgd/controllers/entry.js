@@ -29,7 +29,7 @@ const joikeys = {
     latitude: Joi.number().precision(8).min(-90).max(90).required().description('north-south'),
     elevation: Joi.number().precision(3).optional().description('in meters')
   },
-  radius: Joi.number().positive().max(10000).description('in meters'),
+  radius: Joi.number().min(10).max(10000).description('in meters'),
   shape: Joi.string().regex(/^circle$/).required()
 }
 underscore.extend(joikeys.entry, {
@@ -45,7 +45,7 @@ underscore.extend(joikeys.entry, {
 v1.getEntries = {
   handler: (runtime) => {
     return async (request, h) => {
-      const radius = request.params.radius
+      const radius = Math.ceil(request.params.radius * 1.25)
       const query = request.query
       const find = {
         location: {
@@ -65,9 +65,7 @@ v1.getEntries = {
       const debug = braveHapi.debug(module, request)
       const entries = runtime.database.get('entries', debug)
 
-      debug('!!! find=', find)
       const matches = await entries.find(find, { limit: limit })
-      debug('!!! matches=', matches)
 
       const result = []
       matches.forEach(match => {
