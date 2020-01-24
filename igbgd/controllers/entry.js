@@ -13,8 +13,8 @@ const v1 = {}
 const joikeys = {
   category: Joi.string().valid('green-iguana'),
   entry: {
-    publicID: Joi.string().guid().required().description('public identity of the entry'),
     privateID: Joi.string().guid().required().description('private identity of the entry'),
+    publicID: Joi.string().guid().required().description('public identity of the entry'),
     description: Joi.string().optional()
   },
   image: {
@@ -103,13 +103,18 @@ v1.getEntries = {
   }
 }
 
-const m2e = (match) => {
-  const keys = underscore.keys(underscore.omit(joikeys.entry, [ 'privateID' ]))
-  const entry = underscore.pick(match, keys)
+const m2e = (match, fullP) => {
+  const entry = underscore.pick(match, underscore.keys(joikeys.entry))
   const coordinates = match.location.coordinates
 
   entry.location = { longitude: coordinates[0], latitude: coordinates[1] }
   if (coordinates.length > 2) entry.location.elevation = coordinates[2]
+
+  if (fullP) {
+    entry.image.data = '...'
+  } else {
+    delete entry.privateID
+  }
 
   return entry
 }
@@ -139,7 +144,7 @@ v1.getEntry = {
     mode: 'required'
   },
 
-  description: 'Get a particular entry using it\'s creation key',
+  description: 'Get a particular entry',
   tags: [ 'api' ],
 
   validate: {
@@ -150,6 +155,50 @@ v1.getEntry = {
 
   response: {
     schema: Joi.object().keys(underscore.omit(joikeys.entry, [ 'privateID' ]))
+  }
+}
+
+/*
+  DELETE /v1/entry/{privateID}
+ */
+
+v1.deleteEntry = {
+  handler: (runtime) => {
+    return async (request, h) => {
+      const privateID = request.params.privateID
+
+      const debug = braveHapi.debug(module, request)
+      const entries = runtime.database.get('entries', debug)
+
+      const match = await entries.findOne({ privateID: privateID })
+      if (!match) throw boom.notFound('no such entry: ' + privateID)
+
+      const status = await entries.remove({ privateID: privateID }, { single: true })
+      if ((!status.result) || (!status.result.ok)) throw boom.badImplementation('database deletion failed: ' + privateID)
+      if (status.deletedCount === 0) throw boom.notFound('no such entry: ' + privateID)
+
+      runtime.notify(debug, { text: 'delete ' + JSON.stringify(m2e(match, true)) })
+      return {}
+    }
+  },
+
+  auth: {
+    strategy: 'simple-scoped-token',
+    scope: ['global'],
+    mode: 'required'
+  },
+
+  description: 'Delete a particular entry',
+  tags: [ 'api' ],
+
+  validate: {
+    params: Joi.object().keys({
+      privateID: joikeys.entry.privateID
+    })
+  },
+
+  response: {
+    schema: Joi.object().length(0)
   }
 }
 
@@ -170,6 +219,7 @@ v1.postEntry = {
 
       const publicID = uuidV4().toLowerCase()
       const image = imagesize(Buffer.from(payload.image.data, 'base64'))
+      if (image.type !== 'png') throw boom.badData('invalid image type: ' + image.type)
       image.format = image.type
       underscore.extend(payload.image, underscore.pick(image, [ 'format', 'width', 'height' ]))
 
@@ -188,10 +238,7 @@ v1.postEntry = {
       match = await entries.findOne({ privateID: privateID })
       if (!match) throw boom.badImplementation('database creation failed: ' + privateID)
 
-      const entry = underscore.extend({ privateID: privateID }, m2e(match))
-      entry.image.data = '...'
-      runtime.notify(debug, { text: 'create ' + JSON.stringify(entry) })
-      console.log('!!!')
+      runtime.notify(debug, { text: 'create ' + JSON.stringify(m2e(match, true)) })
 
       return { publicID: publicID }
     }
@@ -218,6 +265,7 @@ v1.postEntry = {
 module.exports.routes = [
   braveHapi.routes.async().path('/v1/entries/{shape}/{radius}').config(v1.getEntries),
   braveHapi.routes.async().path('/v1/entry/{privateID}').config(v1.getEntry),
+  braveHapi.routes.async().delete().path('/v1/entry/{privateID}').config(v1.deleteEntry),
   braveHapi.routes.async().post().path('/v1/entry').config(v1.postEntry)
 ]
 

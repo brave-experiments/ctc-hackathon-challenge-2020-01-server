@@ -169,3 +169,16 @@ the server returns that entry:
        , "height"   : 64
       }
     }
+
+# DELETE an entry
+
+Supply the `privateID`:
+
+    curl -X DELETE "http://127.0.0.1:3004/v1/entry/b2d25937-14f1-48b1-9cf3-7cfeb17b13dd" \
+      -H "accept: application/json"                                                      \
+      -H "Authorization: Bearer ..."
+
+On success,
+the server returns an empty object:
+
+    { }
