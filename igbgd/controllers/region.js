@@ -6,7 +6,7 @@ const underscore = require('underscore')
 const utils = require('bat-utils')
 const braveHapi = utils.extras.hapi
 
-const entrykeys = require('./entry.js').joikeys
+const { entrykeys, m2e } = require('./entry.js')
 
 const v1 = {}
 
@@ -24,7 +24,8 @@ const joikeys = {
     regionID: Joi.string().domain({ allowUnicode: false, tlds: false }).required(),
     description: entrykeys.description.required(),
     categories: Joi.array().items(entrykeys.category).unique().required()
-  }
+  },
+  limit: Joi.number().positive().max(25000).optional().description('the maximum number of entries to return')
 }
 joikeys.region = underscore.extend({}, joikeys.igbgd, {
   geometry: joikeys.geometry.required()
@@ -66,6 +67,58 @@ v1.getRegion = {
 
   response: {
     schema: Joi.object().keys(joikeys.region)
+  }
+}
+
+/*
+  GET /v1/region/{regionID}/entries
+ */
+
+v1.getRegionEntries = {
+  handler: (runtime) => {
+    return async (request, h) => {
+      const regionID = request.params.regionID
+
+      const debug = braveHapi.debug(module, request)
+      const regions = runtime.database.get('regions', debug)
+
+      const match = await regions.findOne({ regionID: regionID })
+      if (!match) throw boom.notFound('no such region: ' + regionID)
+
+      const entries = runtime.database.get('entries', debug)
+
+      let limit = parseInt(request.query.limit, 10)
+      if (isNaN(limit)) limit = undefined
+
+      const matches = await entries.find({ location: { $geoWithin: { $geometry: match.geometry } } }, { limit: limit })
+
+      const result = []
+      matches.forEach(match => { result.push(m2e(match)) })
+
+      return result
+    }
+  },
+
+  auth: {
+    strategy: 'session',
+    scope: [ 'devops', 'readonly' ],
+    mode: 'required'
+  },
+
+  description: 'Get entries in a particular region',
+  tags: [ 'api' ],
+
+  validate: {
+    params: Joi.object().keys({
+      regionID: joikeys.region.regionID
+    }),
+    query: Joi.object().keys({
+      limit: joikeys.limit
+    })
+  },
+
+  response: {
+    schema: Joi.array().items(Joi.object().keys(underscore.omit(entrykeys.entry, [ 'privateID' ])))
   }
 }
 
@@ -232,6 +285,7 @@ const m2r = (match, fullP) => {
 
 module.exports.routes = [
   braveHapi.routes.async().path('/v1/region/{regionID}').config(v1.getRegion),
+  braveHapi.routes.async().path('/v1/region/{regionID}/entries').config(v1.getRegionEntries),
   braveHapi.routes.async().put().path('/v1/region/{regionID}').config(v1.putRegion),
   braveHapi.routes.async().delete().path('/v1/region/{regionID}').config(v1.deleteRegion),
   braveHapi.routes.async().post().path('/v1/region').config(v1.postRegion)
