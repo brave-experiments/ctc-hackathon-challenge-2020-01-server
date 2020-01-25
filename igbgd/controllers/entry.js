@@ -19,7 +19,7 @@ const joikeys = {
   },
   image: {
     data: Joi.string().base64().description('base64 encoding'),
-    format: Joi.string().valid('png'),
+    format: Joi.string().valid('png').optional(),
     width: Joi.number().positive().optional(),
     height: Joi.number().positive().optional()
   },
@@ -29,7 +29,7 @@ const joikeys = {
     latitude: Joi.number().precision(8).min(-90).max(90).required().description('north-south'),
     elevation: Joi.number().precision(3).optional().description('in meters')
   },
-  radius: Joi.number().min(10).max(10000).description('in meters'),
+  radius: Joi.number().min(10).max(10000).required().description('in meters'),
   shape: Joi.string().regex(/^circle$/).required()
 }
 underscore.extend(joikeys.entry, {
@@ -100,23 +100,6 @@ v1.getEntries = {
   }
 }
 
-const m2e = (match, tags) => {
-  const entry = underscore.pick(match, underscore.keys(joikeys.entry))
-  const coordinates = match.location.coordinates
-
-  entry.location = { longitude: coordinates[0], latitude: coordinates[1] }
-  if (coordinates.length > 2) entry.location.elevation = coordinates[2]
-
-  if (tags) {
-    entry.image.data = '...'
-    if (tags !== true) entry.tags = tags
-  } else {
-    delete entry.privateID
-  }
-
-  return entry
-}
-
 /*
   GET /v1/entry/{privateID}
  */
@@ -168,14 +151,26 @@ v1.deleteEntry = {
       const debug = braveHapi.debug(module, request)
       const entries = runtime.database.get('entries', debug)
 
-      const match = await entries.findOne({ privateID: privateID })
+      let match = await entries.findOne({ privateID: privateID })
       if (!match) throw boom.notFound('no such entry: ' + privateID)
+
+      const regions = runtime.database.get('regions', debug)
+      const tags = []
+      const matches = await regions.find({
+        categories: match.category,
+        geometry: {
+          $geoIntersects: {
+            $geometry: match.location
+          }
+        }
+      })
+      matches.forEach((match) => { tags.push(match.regionID) })
 
       const status = await entries.remove({ privateID: privateID }, { single: true })
       if ((!status.result) || (!status.result.ok)) throw boom.badImplementation('database deletion failed: ' + privateID)
       if (status.deletedCount === 0) throw boom.notFound('no such entry: ' + privateID)
 
-      runtime.notify(debug, { text: 'delete ' + JSON.stringify(m2e(match, true)) })
+      runtime.notify(debug, { text: 'delete entry ' + JSON.stringify(m2e(match, tags)) })
       return {}
     }
   },
@@ -224,7 +219,9 @@ v1.postEntry = {
       const category = payload.category
       const location = { type: 'Point', coordinates: [ payload.location.longitude, payload.location.latitude ] }
       const regions = runtime.database.get('regions', debug)
+      const tags = []
       let matches = await regions.find({
+        categories: category,
         geometry: {
           $geoIntersects: {
             $geometry: location
@@ -232,8 +229,6 @@ v1.postEntry = {
         }
       })
       if (matches.length === 0) throw boom.badData('invalid category for known regions: ' + category)
-
-      const tags = []
       matches.forEach((match) => { tags.push(match.regionID) })
 
       try {
@@ -275,6 +270,23 @@ v1.postEntry = {
   response: {
     schema: Joi.object().keys(underscore.pick(joikeys.entry, [ 'publicID' ]))
   }
+}
+
+const m2e = (match, regions) => {
+  const entry = underscore.pick(match, underscore.keys(joikeys.entry))
+  const coordinates = match.location.coordinates
+
+  entry.location = { longitude: coordinates[0], latitude: coordinates[1] }
+  if (coordinates.length > 2) entry.location.elevation = coordinates[2]
+
+  if (regions) {
+    entry.image.data = '...'
+    entry.regions = regions
+  } else {
+    delete entry.privateID
+  }
+
+  return entry
 }
 
 module.exports.routes = [

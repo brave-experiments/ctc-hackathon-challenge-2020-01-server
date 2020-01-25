@@ -1,11 +1,17 @@
 # Initial Data Set
 
 # GEO JSON
-The file [countries.geojson](https://datahub.io/core/geo-countries/r/countries.geojson) is from this
+The file [countries.geojson](https://datahub.io/core/geo-countries/r/countries.geojson) was retrieved from this
 [site](https://datahub.io/core/geo-countries).
+For some reason,
+many [GeoJSON](https://geojson.org) files have the longitude/latitude flipped.
+The ordering should be:
 
-Note that the polygons have the longitude/latitude flipped.
-(Be sure to fix those otherwise the region intersection code won't work!)
+    [ longitude, latitude ]
+    
+The `countries.json` file in this repository has the values in the correct order:
+
+    node flip.js > countries.json
 
 A region file consists of a GEO JSON `Feature` object.
 For the `POST /v1/region` operation:
