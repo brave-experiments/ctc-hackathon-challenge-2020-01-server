@@ -14,7 +14,8 @@ const {
 } = hapi
 
 const parentModules = [
-  require('./controllers/entry')
+  require('./controllers/entry'),
+  require('./controllers/region')
 ]
 
 const options = {

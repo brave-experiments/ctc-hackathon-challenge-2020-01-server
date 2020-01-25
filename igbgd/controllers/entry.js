@@ -12,10 +12,10 @@ const v1 = {}
 
 const joikeys = {
   category: Joi.string().valid('green-iguana'),
+  description: Joi.string(),
   entry: {
     privateID: Joi.string().guid().required().description('private identity of the entry'),
-    publicID: Joi.string().guid().required().description('public identity of the entry'),
-    description: Joi.string().optional()
+    publicID: Joi.string().guid().required().description('public identity of the entry')
   },
   image: {
     data: Joi.string().base64().description('base64 encoding'),
@@ -34,6 +34,7 @@ const joikeys = {
 }
 underscore.extend(joikeys.entry, {
   category: joikeys.category.required(),
+  description: joikeys.description.optional(),
   location: Joi.object().keys(joikeys.location).required(),
   image: Joi.object().keys(joikeys.image).required()
 })
@@ -68,9 +69,7 @@ v1.getEntries = {
       const matches = await entries.find(find, { limit: limit })
 
       const result = []
-      matches.forEach(match => {
-        result.push(m2e(match))
-      })
+      matches.forEach(match => { result.push(m2e(match)) })
 
       return result
     }
@@ -101,15 +100,16 @@ v1.getEntries = {
   }
 }
 
-const m2e = (match, fullP) => {
+const m2e = (match, tags) => {
   const entry = underscore.pick(match, underscore.keys(joikeys.entry))
   const coordinates = match.location.coordinates
 
   entry.location = { longitude: coordinates[0], latitude: coordinates[1] }
   if (coordinates.length > 2) entry.location.elevation = coordinates[2]
 
-  if (fullP) {
+  if (tags) {
     entry.image.data = '...'
+    if (tags !== true) entry.tags = tags
   } else {
     delete entry.privateID
   }
@@ -221,10 +221,27 @@ v1.postEntry = {
       image.format = image.type
       underscore.extend(payload.image, underscore.pick(image, [ 'format', 'width', 'height' ]))
 
+      const category = payload.category
+      const location = { type: 'Point', coordinates: [ payload.location.longitude, payload.location.latitude ] }
+      const regions = runtime.database.get('regions', debug)
+      let matches = await regions.find({
+        geometry: {
+          $geoIntersects: {
+            $geometry: location
+          }
+        }
+      })
+      if (matches.length === 0) throw boom.badData('invalid category for known regions: ' + category)
+
+      const tags = []
+      matches.forEach((match) => { tags.push(match.regionID) })
+
       try {
-        await entries.insert(underscore.extend(underscore.pick(payload, [ 'privateID', 'category', 'image', 'description' ]), {
+        await entries.insert(underscore.extend(underscore.pick(payload, [ 'image', 'description' ]), {
+          privateID: privateID,
           publicID: publicID,
-          location: { type: 'Point', coordinates: [ payload.location.longitude, payload.location.latitude ] },
+          category: category,
+          location: location,
           timestamp: bson.Timestamp()
         }))
       } catch (ex) {
@@ -236,7 +253,7 @@ v1.postEntry = {
       match = await entries.findOne({ privateID: privateID })
       if (!match) throw boom.badImplementation('database creation failed: ' + privateID)
 
-      runtime.notify(debug, { text: 'create ' + JSON.stringify(m2e(match, true)) })
+      runtime.notify(debug, { text: 'create entry ' + JSON.stringify(m2e(match, tags)) })
 
       return { publicID: publicID }
     }
@@ -290,6 +307,6 @@ module.exports.initialize = async (debug, runtime) => {
       raw: [ { location: '2dsphere' } ]
     }
   ])
-
-  await runtime.queue.create('wallet-report')
 }
+
+module.exports.joikeys = joikeys
