@@ -2,6 +2,7 @@ const Joi = require('@hapi/joi')
 const boom = require('boom')
 const bson = require('bson')
 const imagesize = require('image-size')
+// const niceware = require('niceware')
 const underscore = require('underscore')
 const uuidV4 = require('uuid/v4')
 
@@ -14,7 +15,7 @@ const v1 = {}
 
 const joikeys = {
   category: Joi.string().valid('green-iguana'),
-  description: Joi.string(),
+  description: Joi.string().allow(''),
   entry: {
     privateID: Joi.string().guid().required().description('private identity of the entry'),
     publicID: Joi.string().guid().required().description('public identity of the entry')
@@ -89,7 +90,7 @@ v1.getEntries = {
     params: Joi.object().keys({
       shape: joikeys.shape,
       radius: joikeys.radius
-    }),
+    }).required(),
     query: Joi.object().keys(underscore.extend({
       category: joikeys.category.optional(),
       limit: joikeys.limit
@@ -98,143 +99,6 @@ v1.getEntries = {
 
   response: {
     schema: Joi.array().items(Joi.object().keys(underscore.omit(joikeys.entry, [ 'privateID' ])))
-  }
-}
-
-/*
-  GET /v1/entry/{privateID}
- */
-
-v1.getEntry = {
-  handler: (runtime) => {
-    return async (request, h) => {
-      const privateID = request.params.privateID
-
-      const debug = braveHapi.debug(module, request)
-      const entries = runtime.database.get('entries', debug)
-
-      const match = await entries.findOne({ privateID: privateID })
-      if (!match) throw boom.notFound('no such entry: ' + privateID)
-
-      return m2entry(match)
-    }
-  },
-
-  auth: {
-    strategy: 'simple-scoped-token',
-    scope: ['global'],
-    mode: 'required'
-  },
-
-  description: 'Get a particular entry',
-  tags: [ 'api' ],
-
-  validate: {
-    params: Joi.object().keys({
-      privateID: joikeys.entry.privateID
-    })
-  },
-
-  response: {
-    schema: Joi.object().keys(underscore.omit(joikeys.entry, [ 'privateID' ]))
-  }
-}
-
-/*
-  GET /v1/entry/{privateID}/regions
- */
-
-v1.getEntryRegions = {
-  handler: (runtime) => {
-    return async (request, h) => {
-      const privateID = request.params.privateID
-
-      const debug = braveHapi.debug(module, request)
-      const entries = runtime.database.get('entries', debug)
-      const regions = runtime.database.get('regions', debug)
-
-      const match = await entries.findOne({ privateID: privateID })
-      if (!match) throw boom.notFound('no such entry: ' + privateID)
-
-      let limit = parseInt(request.query.limit, 10)
-      if (isNaN(limit)) limit = undefined
-
-      const matches = await regions.find({ geometry: { $geoIntersects: { $geometry: match.location } } }, { limit: limit })
-
-      const result = []
-      matches.forEach(match => { result.push(m2region(match, true)) })
-
-      return result
-    }
-  },
-
-  auth: {
-    strategy: 'session',
-    scope: [ 'devops', 'readonly' ],
-    mode: 'required'
-  },
-
-  description: 'Get regions containing a particular entry',
-  tags: [ 'api' ],
-
-  validate: {
-    params: Joi.object().keys({
-      privateID: joikeys.entry.privateID
-    }),
-    query: Joi.object().keys({
-      limit: joikeys.limit
-    })
-  },
-
-  response: {
-    schema: Joi.array().items(Joi.object().unknown())
-  }
-}
-
-/*
-  DELETE /v1/entry/{privateID}
- */
-
-v1.deleteEntry = {
-  handler: (runtime) => {
-    return async (request, h) => {
-      const privateID = request.params.privateID
-
-      const debug = braveHapi.debug(module, request)
-      const entries = runtime.database.get('entries', debug)
-      const regions = runtime.database.get('regions', debug)
-
-      let match = await entries.findOne({ privateID: privateID })
-      if (!match) throw boom.notFound('no such entry: ' + privateID)
-
-      const tags = await m2tags(regions, match)
-
-      const status = await entries.remove({ privateID: privateID }, { single: true })
-      if ((!status.result) || (!status.result.ok)) throw boom.badImplementation('database deletion failed: ' + privateID)
-      if (status.deletedCount === 0) throw boom.notFound('no such entry: ' + privateID)
-
-      runtime.notify(debug, { text: 'delete entry ' + JSON.stringify(m2entry(match, tags)) })
-      return {}
-    }
-  },
-
-  auth: {
-    strategy: 'simple-scoped-token',
-    scope: ['global'],
-    mode: 'required'
-  },
-
-  description: 'Delete a particular entry',
-  tags: [ 'api' ],
-
-  validate: {
-    params: Joi.object().keys({
-      privateID: joikeys.entry.privateID
-    })
-  },
-
-  response: {
-    schema: Joi.object().length(0)
   }
 }
 
@@ -289,7 +153,6 @@ v1.postEntry = {
       if (!match) throw boom.badImplementation('database creation failed: ' + privateID)
 
       runtime.notify(debug, { text: 'create entry ' + JSON.stringify(m2entry(match, tags)) })
-
       return { publicID: publicID }
     }
   },
@@ -304,11 +167,234 @@ v1.postEntry = {
   tags: [ 'api' ],
 
   validate: {
-    payload: Joi.object().keys(underscore.omit(joikeys.entry, [ 'publicID' ]))
+    payload: Joi.object().keys(underscore.omit(joikeys.entry, [ 'publicID' ])).required()
   },
 
   response: {
     schema: Joi.object().keys(underscore.pick(joikeys.entry, [ 'publicID' ]))
+  }
+}
+
+/*
+  GET /v1/entry/{privateID}
+ */
+
+v1.getEntry = {
+  handler: (runtime) => {
+    return async (request, h) => {
+      const privateID = request.params.privateID
+
+      const debug = braveHapi.debug(module, request)
+      const entries = runtime.database.get('entries', debug)
+
+      const match = await entries.findOne({ privateID: privateID })
+      if (!match) throw boom.notFound('no such entry: ' + privateID)
+
+      return m2entry(match)
+    }
+  },
+
+  auth: {
+    strategy: 'simple-scoped-token',
+    scope: ['global'],
+    mode: 'required'
+  },
+
+  description: 'Get a particular entry',
+  tags: [ 'api' ],
+
+  validate: {
+    params: Joi.object().keys({
+      privateID: joikeys.entry.privateID
+    }).required()
+  },
+
+  response: {
+    schema: Joi.object().keys(underscore.omit(joikeys.entry, [ 'privateID' ]))
+  }
+}
+
+/*
+  PUT /v1/entry/{privateID}
+ */
+
+v1.putEntry = {
+  handler: (runtime) => {
+    return async (request, h) => {
+      const payload = request.payload
+      const privateID = request.params.privateID
+
+      if (underscore.keys(payload).length === 0) throw boom.badData('empty update')
+
+      const debug = braveHapi.debug(module, request)
+      const entries = runtime.database.get('entries', debug)
+      const regions = runtime.database.get('regions', debug)
+
+      let match = await entries.findOne({ privateID: privateID })
+      if (!match) throw boom.notFound('no such entry: ' + privateID)
+
+      if (payload.image) {
+        const image = imagesize(Buffer.from(payload.image.data, 'base64'))
+        if (image.type !== 'png') throw boom.badData('invalid image type: ' + image.type)
+        image.format = image.type
+        underscore.extend(payload.image, underscore.pick(image, [ 'format', 'width', 'height' ]))
+      }
+
+      if (payload.category || payload.location) {
+        const category = payload.category || match.category
+        if (payload.location) {
+          payload.location = { type: 'Point', coordinates: [ payload.location.longitude, payload.location.latitude ] }
+        }
+
+        const location = payload.location || match.location
+        let tags = await m2tags(regions, { category: category, location: location })
+        if (tags.length === 0) {
+          tags = await m2tags(regions, { location: location })
+          if (tags.length === 0) throw boom.badData('invalid location: ' + JSON.stringify(location))
+
+          throw boom.badData('invalid category for known regions: ' + category)
+        }
+      }
+
+      const state = {
+        $set: payload,
+        $currentDate: { timestamp: { $type: 'timestamp' } }
+      }
+
+      const status = await entries.update({ privateID: privateID }, state, { upsert: false })
+      if (!status.ok) throw boom.badImplementation('database update failed: ' + privateID)
+
+      match = await entries.findOne({ privateID: privateID })
+      if (!match) throw boom.notFound('no such entry: ' + privateID)
+
+      const tags = await m2tags(regions, match)
+
+      runtime.notify(debug, { text: 'update entry ' + JSON.stringify(m2entry(match, tags)) })
+      return {}
+    }
+  },
+
+  auth: {
+    strategy: 'simple-scoped-token',
+    scope: ['global'],
+    mode: 'required'
+  },
+
+  description: 'Update a particular entry',
+  tags: [ 'api' ],
+
+  validate: {
+    params: Joi.object().keys({
+      privateID: joikeys.entry.privateID
+    }).required(),
+    payload: Joi.object().keys({
+      category: joikeys.category.optional(),
+      description: joikeys.description.optional(),
+      location: Joi.object().keys(joikeys.location).optional(),
+      image: Joi.object().keys(joikeys.image).optional()
+    }).required()
+  },
+
+  response: {
+    schema: Joi.object().length(0)
+  }
+}
+
+/*
+  DELETE /v1/entry/{privateID}
+ */
+
+v1.deleteEntry = {
+  handler: (runtime) => {
+    return async (request, h) => {
+      const privateID = request.params.privateID
+
+      const debug = braveHapi.debug(module, request)
+      const entries = runtime.database.get('entries', debug)
+      const regions = runtime.database.get('regions', debug)
+
+      let match = await entries.findOne({ privateID: privateID })
+      if (!match) throw boom.notFound('no such entry: ' + privateID)
+
+      const tags = await m2tags(regions, match)
+
+      const status = await entries.remove({ privateID: privateID }, { single: true })
+      if ((!status.result) || (!status.result.ok)) throw boom.badImplementation('database deletion failed: ' + privateID)
+      if (status.deletedCount === 0) throw boom.notFound('no such entry: ' + privateID)
+
+      runtime.notify(debug, { text: 'delete entry ' + JSON.stringify(m2entry(match, tags)) })
+      return {}
+    }
+  },
+
+  auth: {
+    strategy: 'simple-scoped-token',
+    scope: ['global'],
+    mode: 'required'
+  },
+
+  description: 'Delete a particular entry',
+  tags: [ 'api' ],
+
+  validate: {
+    params: Joi.object().keys({
+      privateID: joikeys.entry.privateID
+    }).required()
+  },
+
+  response: {
+    schema: Joi.object().length(0)
+  }
+}
+
+/*
+  GET /v1/entry/{privateID}/regions
+ */
+
+v1.getEntryRegions = {
+  handler: (runtime) => {
+    return async (request, h) => {
+      const privateID = request.params.privateID
+
+      const debug = braveHapi.debug(module, request)
+      const entries = runtime.database.get('entries', debug)
+      const regions = runtime.database.get('regions', debug)
+
+      const match = await entries.findOne({ privateID: privateID })
+      if (!match) throw boom.notFound('no such entry: ' + privateID)
+
+      let limit = parseInt(request.query.limit, 10)
+      if (isNaN(limit)) limit = undefined
+
+      const matches = await regions.find({ geometry: { $geoIntersects: { $geometry: match.location } } }, { limit: limit })
+
+      const result = []
+      matches.forEach(match => { result.push(m2region(match, true)) })
+
+      return result
+    }
+  },
+
+  auth: {
+    strategy: 'session',
+    scope: [ 'devops', 'readonly', 'reviwer' ],
+    mode: 'required'
+  },
+
+  description: 'Get regions containing a particular entry',
+  tags: [ 'api' ],
+
+  validate: {
+    params: Joi.object().keys({
+      privateID: joikeys.entry.privateID
+    }).required(),
+    query: Joi.object().keys({
+      limit: joikeys.limit
+    })
+  },
+
+  response: {
+    schema: Joi.array().items(Joi.object().unknown())
   }
 }
 
@@ -345,12 +431,25 @@ const m2tags = async (regions, match) => {
   return tags
 }
 
+/*
+// cf., https://github.com/uuidjs/uuid/blob/master/lib/v35.js#L3
+const uuid2nice = (uuid) => {
+  const bytes = []
+
+  uuid.replace(/[a-fA-F0-9]{2}/g, (hex) => { bytes.push(parseInt(hex, 16)) })
+
+  return niceware.bytesToPassphrase(Buffer.from(bytes)).join(' ')
+}
+ */
+
 module.exports.routes = [
   braveHapi.routes.async().path('/v1/entries/{shape}/{radius}').config(v1.getEntries),
+  braveHapi.routes.async().post().path('/v1/entry').config(v1.postEntry),
   braveHapi.routes.async().path('/v1/entry/{privateID}').config(v1.getEntry),
-  braveHapi.routes.async().path('/v1/entry/{privateID}/regions').config(v1.getEntryRegions),
+  braveHapi.routes.async().put().path('/v1/entry/{privateID}').config(v1.putEntry),
   braveHapi.routes.async().delete().path('/v1/entry/{privateID}').config(v1.deleteEntry),
-  braveHapi.routes.async().post().path('/v1/entry').config(v1.postEntry)
+  braveHapi.routes.async().path('/v1/entry/{privateID}/regions').config(v1.getEntryRegions)
+
 ]
 
 module.exports.initialize = async (debug, runtime) => {

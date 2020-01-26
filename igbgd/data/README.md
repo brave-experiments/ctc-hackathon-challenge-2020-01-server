@@ -33,3 +33,5 @@ For the `POST /v1/region` operation:
 
 # Acknowledgements
 Thank you [@georgique](https://github.com/georgique).
+
+Also, I find it useful to use [geojson.io](http://geojson.io) to quickly view GEO JSON data.

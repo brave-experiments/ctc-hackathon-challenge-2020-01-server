@@ -32,6 +32,61 @@ joikeys.region = underscore.extend({}, joikeys.igbgd, {
 })
 
 /*
+  POST /v1/region
+ */
+
+v1.postRegion = {
+  handler: (runtime) => {
+    return async (request, h) => {
+      const payload = request.payload
+      const regionID = payload.igbgd.regionID
+
+      const debug = braveHapi.debug(module, request)
+      const regions = runtime.database.get('regions', debug)
+
+      let match = await regions.findOne({ regionID: regionID })
+      if (match) throw boom.badData('entry already exists: ' + regionID)
+
+      try {
+        await regions.insert(underscore.extend({}, payload.igbgd, { geometry: payload.geometry, timestamp: bson.Timestamp() }))
+      } catch (ex) {
+        runtime.notify(debug, { text: 'regions error: ' + ex.toString() })
+        debug('regions error', ex)
+        throw boom.badData(ex.toString())
+      }
+
+      match = await regions.findOne({ regionID: regionID })
+      if (!match) throw boom.badImplementation('database creation failed: ' + regionID)
+
+      runtime.notify(debug, { text: 'create region ' + JSON.stringify(m2region(match)) })
+      return {}
+    }
+  },
+
+  auth: {
+    strategy: 'session',
+    scope: [ 'devops' ],
+    mode: 'required'
+  },
+
+  description: 'Create a region',
+  tags: [ 'api' ],
+
+  validate: {
+    payload: Joi.object().keys({
+      type: Joi.string().valid('Feature').optional(),
+      properties: Joi.object().keys({}).unknown().optional(),
+      igbgd: Joi.object().keys(joikeys.igbgd).required(),
+      geometry: joikeys.geometry.required()
+    }).required()
+  },
+
+  response: {
+    schema: Joi.object().length(0)
+  }
+}
+
+/*
   GET /v1/region/{regionID}
  */
 
@@ -52,7 +107,7 @@ v1.getRegion = {
 
   auth: {
     strategy: 'session',
-    scope: [ 'devops', 'readonly' ],
+    scope: [ 'devops', 'readonly', 'reviwer' ],
     mode: 'required'
   },
 
@@ -62,62 +117,11 @@ v1.getRegion = {
   validate: {
     params: Joi.object().keys({
       regionID: joikeys.region.regionID
-    })
+    }).required()
   },
 
   response: {
     schema: Joi.object().keys(joikeys.region)
-  }
-}
-
-/*
-  GET /v1/region/{regionID}/entries
- */
-
-v1.getRegionEntries = {
-  handler: (runtime) => {
-    return async (request, h) => {
-      const regionID = request.params.regionID
-
-      const debug = braveHapi.debug(module, request)
-      const regions = runtime.database.get('regions', debug)
-      const entries = runtime.database.get('entries', debug)
-
-      const match = await regions.findOne({ regionID: regionID })
-      if (!match) throw boom.notFound('no such region: ' + regionID)
-
-      let limit = parseInt(request.query.limit, 10)
-      if (isNaN(limit)) limit = undefined
-
-      const matches = await entries.find({ location: { $geoWithin: { $geometry: match.geometry } } }, { limit: limit })
-
-      const result = []
-      matches.forEach(match => { result.push(m2entry(match)) })
-
-      return result
-    }
-  },
-
-  auth: {
-    strategy: 'session',
-    scope: [ 'devops', 'readonly' ],
-    mode: 'required'
-  },
-
-  description: 'Get entries within a particular region',
-  tags: [ 'api' ],
-
-  validate: {
-    params: Joi.object().keys({
-      regionID: joikeys.region.regionID
-    }),
-    query: Joi.object().keys({
-      limit: joikeys.limit
-    })
-  },
-
-  response: {
-    schema: Joi.array().items(Joi.object().keys(underscore.omit(entrykeys.entry, [ 'privateID' ])))
   }
 }
 
@@ -141,7 +145,7 @@ v1.putRegion = {
         $currentDate: { timestamp: { $type: 'timestamp' } }
       }
 
-      const status = await regions.update({ regionID: regionID }, state, { upsert: true })
+      const status = await regions.update({ regionID: regionID }, state, { upsert: false })
       if (!status.result.ok) throw boom.badImplementation('database update failed: ' + regionID)
 
       const match = await regions.findOne({ regionID: regionID })
@@ -154,7 +158,7 @@ v1.putRegion = {
 
   auth: {
     strategy: 'session',
-    scope: [ 'devops', 'readonly' ],
+    scope: [ 'devops' ],
     mode: 'required'
   },
 
@@ -164,12 +168,12 @@ v1.putRegion = {
   validate: {
     params: Joi.object().keys({
       regionID: joikeys.region.regionID
-    }),
+    }).required(),
     payload: Joi.object().keys({
       description: entrykeys.description.optional(),
       categories: Joi.array().items(entrykeys.category).unique().optional(),
       geometry: joikeys.geometry.optional()
-    })
+    }).required()
   },
 
   response: {
@@ -203,7 +207,7 @@ v1.deleteRegion = {
 
   auth: {
     strategy: 'session',
-    scope: [ 'devops', 'readonly' ],
+    scope: [ 'devops' ],
     mode: 'required'
   },
 
@@ -213,7 +217,7 @@ v1.deleteRegion = {
   validate: {
     params: Joi.object().keys({
       regionID: joikeys.region.regionID
-    })
+    }).required()
   },
 
   response: {
@@ -222,58 +226,53 @@ v1.deleteRegion = {
 }
 
 /*
-  POST /v1/region
+  GET /v1/region/{regionID}/entries
  */
 
-v1.postRegion = {
+v1.getRegionEntries = {
   handler: (runtime) => {
     return async (request, h) => {
-      const payload = request.payload
-      const regionID = payload.igbgd.regionID
+      const regionID = request.params.regionID
 
       const debug = braveHapi.debug(module, request)
       const regions = runtime.database.get('regions', debug)
+      const entries = runtime.database.get('entries', debug)
 
-      let match = await regions.findOne({ regionID: regionID })
-      if (match) throw boom.badData('entry already exists: ' + regionID)
+      const match = await regions.findOne({ regionID: regionID })
+      if (!match) throw boom.notFound('no such region: ' + regionID)
 
-      try {
-        await regions.insert(underscore.extend({}, payload.igbgd, { geometry: payload.geometry, timestamp: bson.Timestamp() }))
-      } catch (ex) {
-        runtime.notify(debug, { text: 'regions error: ' + ex.toString() })
-        debug('regions error', ex)
-        throw boom.badData(ex.toString())
-      }
+      let limit = parseInt(request.query.limit, 10)
+      if (isNaN(limit)) limit = undefined
 
-      match = await regions.findOne({ regionID: regionID })
-      if (!match) throw boom.badImplementation('database creation failed: ' + regionID)
+      const matches = await entries.find({ location: { $geoWithin: { $geometry: match.geometry } } }, { limit: limit })
 
-      runtime.notify(debug, { text: 'create region ' + JSON.stringify(m2region(match)) })
+      const result = []
+      matches.forEach(match => { result.push(m2entry(match)) })
 
-      return {}
+      return result
     }
   },
 
   auth: {
     strategy: 'session',
-    scope: [ 'devops', 'readonly' ],
+    scope: [ 'devops', 'readonly', 'reviwer' ],
     mode: 'required'
   },
 
-  description: 'Create a region',
+  description: 'Get entries within a particular region',
   tags: [ 'api' ],
 
   validate: {
-    payload: Joi.object().keys({
-      type: Joi.string().valid('Feature').optional(),
-      properties: Joi.object().keys({}).unknown().optional(),
-      igbgd: Joi.object().keys(joikeys.igbgd).required(),
-      geometry: joikeys.geometry.required()
+    params: Joi.object().keys({
+      regionID: joikeys.region.regionID
+    }).required(),
+    query: Joi.object().keys({
+      limit: joikeys.limit
     })
   },
 
   response: {
-    schema: Joi.object().length(0)
+    schema: Joi.array().items(Joi.object().keys(underscore.omit(entrykeys.entry, [ 'privateID' ])))
   }
 }
 
@@ -284,11 +283,11 @@ const m2region = (match, fullP) => {
 }
 
 module.exports.routes = [
+  braveHapi.routes.async().post().path('/v1/region').config(v1.postRegion),
   braveHapi.routes.async().path('/v1/region/{regionID}').config(v1.getRegion),
-  braveHapi.routes.async().path('/v1/region/{regionID}/entries').config(v1.getRegionEntries),
   braveHapi.routes.async().put().path('/v1/region/{regionID}').config(v1.putRegion),
   braveHapi.routes.async().delete().path('/v1/region/{regionID}').config(v1.deleteRegion),
-  braveHapi.routes.async().post().path('/v1/region').config(v1.postRegion)
+  braveHapi.routes.async().path('/v1/region/{regionID}/entries').config(v1.getRegionEntries)
 ]
 
 module.exports.initialize = async (debug, runtime) => {
