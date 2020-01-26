@@ -8,6 +8,8 @@ const uuidV4 = require('uuid/v4')
 const utils = require('bat-utils')
 const braveHapi = utils.extras.hapi
 
+let m2region
+
 const v1 = {}
 
 const joikeys = {
@@ -40,7 +42,7 @@ underscore.extend(joikeys.entry, {
 })
 
 /*
-  GET /v1/enties/{shape}/{radius}
+  GET /v1/entries/{shape}/{radius}
 */
 
 v1.getEntries = {
@@ -68,7 +70,7 @@ v1.getEntries = {
       const matches = await entries.find(find, { limit: limit })
 
       const result = []
-      matches.forEach(match => { result.push(m2e(match)) })
+      matches.forEach(match => { result.push(m2entry(match)) })
 
       return result
     }
@@ -114,7 +116,7 @@ v1.getEntry = {
       const match = await entries.findOne({ privateID: privateID })
       if (!match) throw boom.notFound('no such entry: ' + privateID)
 
-      return m2e(match)
+      return m2entry(match)
     }
   },
 
@@ -139,6 +141,60 @@ v1.getEntry = {
 }
 
 /*
+  GET /v1/entry/{privateID}/regions
+ */
+
+v1.getEntryRegions = {
+  handler: (runtime) => {
+    return async (request, h) => {
+      const privateID = request.params.privateID
+
+      const debug = braveHapi.debug(module, request)
+      const entries = runtime.database.get('entries', debug)
+      const regions = runtime.database.get('regions', debug)
+
+      const match = await entries.findOne({ privateID: privateID })
+      if (!match) throw boom.notFound('no such entry: ' + privateID)
+
+      const matches = await regions.find({
+        geometry: {
+          $geoIntersects: {
+            $geometry: match.location
+          }
+        }
+      })
+
+      const result = []
+      matches.forEach(match => { result.push(m2region(match, true)) })
+
+      return result
+    }
+  },
+
+  auth: {
+    strategy: 'session',
+    scope: [ 'devops', 'readonly' ],
+    mode: 'required'
+  },
+
+  description: 'Get a particular entry',
+  tags: [ 'api' ],
+
+  validate: {
+    params: Joi.object().keys({
+      privateID: joikeys.entry.privateID
+    }),
+    query: Joi.object().keys({
+      limit: joikeys.limit
+    })
+  },
+
+  response: {
+    schema: Joi.array().items(Joi.object().unknown())
+  }
+}
+
+/*
   DELETE /v1/entry/{privateID}
  */
 
@@ -159,7 +215,7 @@ v1.deleteEntry = {
       if ((!status.result) || (!status.result.ok)) throw boom.badImplementation('database deletion failed: ' + privateID)
       if (status.deletedCount === 0) throw boom.notFound('no such entry: ' + privateID)
 
-      runtime.notify(debug, { text: 'delete entry ' + JSON.stringify(m2e(match, tags)) })
+      runtime.notify(debug, { text: 'delete entry ' + JSON.stringify(m2entry(match, tags)) })
       return {}
     }
   },
@@ -207,8 +263,13 @@ v1.postEntry = {
 
       const category = payload.category
       const location = { type: 'Point', coordinates: [ payload.location.longitude, payload.location.latitude ] }
-      const tags = await m2tags(runtime.database.get('regions', debug), { category: category, location: location })
-      if (tags.length === 0) throw boom.badData('invalid category for known regions: ' + category)
+      let tags = await m2tags(runtime.database.get('regions', debug), { category: category, location: location })
+      if (tags.length === 0) {
+        tags = await m2tags(runtime.database.get('regions', debug), { location: location })
+        if (tags.length === 0) throw boom.badData('invalid location: ' + JSON.stringify(payload.location))
+
+        throw boom.badData('invalid category for known regions: ' + category)
+      }
 
       try {
         await entries.insert(underscore.extend(underscore.pick(payload, [ 'image', 'description' ]), {
@@ -227,7 +288,7 @@ v1.postEntry = {
       match = await entries.findOne({ privateID: privateID })
       if (!match) throw boom.badImplementation('database creation failed: ' + privateID)
 
-      runtime.notify(debug, { text: 'create entry ' + JSON.stringify(m2e(match, tags)) })
+      runtime.notify(debug, { text: 'create entry ' + JSON.stringify(m2entry(match, tags)) })
 
       return { publicID: publicID }
     }
@@ -251,7 +312,7 @@ v1.postEntry = {
   }
 }
 
-const m2e = (match, regions) => {
+const m2entry = (match, regions) => {
   const entry = underscore.pick(match, underscore.keys(joikeys.entry))
   const coordinates = match.location.coordinates
 
@@ -261,7 +322,7 @@ const m2e = (match, regions) => {
   if (regions) {
     entry.image.data = '...'
     entry.regions = regions
-  } else {
+  } else if (regions !== false) {
     delete entry.privateID
   }
 
@@ -269,8 +330,6 @@ const m2e = (match, regions) => {
 }
 
 const m2tags = async (regions, match) => {
-  const tags = []
-
   const matches = await regions.find({
     categories: match.category,
     geometry: {
@@ -280,6 +339,7 @@ const m2tags = async (regions, match) => {
     }
   })
 
+  const tags = []
   matches.forEach((match) => { tags.push(match.regionID) })
 
   return tags
@@ -288,6 +348,7 @@ const m2tags = async (regions, match) => {
 module.exports.routes = [
   braveHapi.routes.async().path('/v1/entries/{shape}/{radius}').config(v1.getEntries),
   braveHapi.routes.async().path('/v1/entry/{privateID}').config(v1.getEntry),
+  braveHapi.routes.async().path('/v1/entry/{privateID}/regions').config(v1.getEntryRegions),
   braveHapi.routes.async().delete().path('/v1/entry/{privateID}').config(v1.deleteEntry),
   braveHapi.routes.async().post().path('/v1/entry').config(v1.postEntry)
 ]
@@ -315,7 +376,10 @@ module.exports.initialize = async (debug, runtime) => {
       raw: [ { location: '2dsphere' } ]
     }
   ])
+
+  const region = require('./region.js')
+  m2region = region.m2region
 }
 
 module.exports.entrykeys = joikeys
-module.exports.m2e = m2e
+module.exports.m2entry = m2entry

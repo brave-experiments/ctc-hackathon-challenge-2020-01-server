@@ -6,7 +6,7 @@ const underscore = require('underscore')
 const utils = require('bat-utils')
 const braveHapi = utils.extras.hapi
 
-const { entrykeys, m2e } = require('./entry.js')
+const { entrykeys, m2entry } = require('./entry.js')
 
 const v1 = {}
 
@@ -46,7 +46,7 @@ v1.getRegion = {
       const match = await regions.findOne({ regionID: regionID })
       if (!match) throw boom.notFound('no such region: ' + regionID)
 
-      return m2r(match, true)
+      return m2region(match, true)
     }
   },
 
@@ -93,7 +93,7 @@ v1.getRegionEntries = {
       const matches = await entries.find({ location: { $geoWithin: { $geometry: match.geometry } } }, { limit: limit })
 
       const result = []
-      matches.forEach(match => { result.push(m2e(match)) })
+      matches.forEach(match => { result.push(m2entry(match)) })
 
       return result
     }
@@ -148,7 +148,7 @@ v1.putRegion = {
       const match = await regions.findOne({ regionID: regionID })
       if (!match) throw boom.notFound('no such region: ' + regionID)
 
-      runtime.notify(debug, { text: 'update region ' + JSON.stringify(m2r(match)) })
+      runtime.notify(debug, { text: 'update region ' + JSON.stringify(m2region(match)) })
       return {}
     }
   },
@@ -197,7 +197,7 @@ v1.deleteRegion = {
       if ((!status.result) || (!status.result.ok)) throw boom.badImplementation('database deletion failed: ' + regionID)
       if (status.deletedCount === 0) throw boom.notFound('no such region: ' + regionID)
 
-      runtime.notify(debug, { text: 'delete region ' + JSON.stringify(m2r(match)) })
+      runtime.notify(debug, { text: 'delete region ' + JSON.stringify(m2region(match)) })
       return {}
     }
   },
@@ -248,7 +248,7 @@ v1.postRegion = {
       match = await regions.findOne({ regionID: regionID })
       if (!match) throw boom.badImplementation('database creation failed: ' + regionID)
 
-      runtime.notify(debug, { text: 'create region ' + JSON.stringify(m2r(match)) })
+      runtime.notify(debug, { text: 'create region ' + JSON.stringify(m2region(match)) })
 
       return {}
     }
@@ -277,7 +277,7 @@ v1.postRegion = {
   }
 }
 
-const m2r = (match, fullP) => {
+const m2region = (match, fullP) => {
   const region = underscore.pick(match, underscore.keys(joikeys.region))
 
   return (fullP ? region : underscore.omit(region, [ 'geometry' ]))
@@ -314,3 +314,5 @@ module.exports.initialize = async (debug, runtime) => {
     }
   ])
 }
+
+module.exports.m2region = m2region
