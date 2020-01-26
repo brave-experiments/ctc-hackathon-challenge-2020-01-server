@@ -25,7 +25,7 @@ const joikeys = {
     description: entrykeys.description.required(),
     categories: Joi.array().items(entrykeys.category).unique().required()
   },
-  limit: Joi.number().positive().max(25000).optional().description('the maximum number of entries to return')
+  limit: Joi.number().positive().optional().description('the maximum number of entries to return')
 }
 joikeys.region = underscore.extend({}, joikeys.igbgd, {
   geometry: joikeys.geometry.required()
@@ -81,11 +81,10 @@ v1.getRegionEntries = {
 
       const debug = braveHapi.debug(module, request)
       const regions = runtime.database.get('regions', debug)
+      const entries = runtime.database.get('entries', debug)
 
       const match = await regions.findOne({ regionID: regionID })
       if (!match) throw boom.notFound('no such region: ' + regionID)
-
-      const entries = runtime.database.get('entries', debug)
 
       let limit = parseInt(request.query.limit, 10)
       if (isNaN(limit)) limit = undefined
@@ -105,7 +104,7 @@ v1.getRegionEntries = {
     mode: 'required'
   },
 
-  description: 'Get entries in a particular region',
+  description: 'Get entries within a particular region',
   tags: [ 'api' ],
 
   validate: {
@@ -234,6 +233,7 @@ v1.postRegion = {
 
       const debug = braveHapi.debug(module, request)
       const regions = runtime.database.get('regions', debug)
+
       let match = await regions.findOne({ regionID: regionID })
       if (match) throw boom.badData('entry already exists: ' + regionID)
 

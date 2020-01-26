@@ -25,7 +25,7 @@ const joikeys = {
     width: Joi.number().positive().optional(),
     height: Joi.number().positive().optional()
   },
-  limit: Joi.number().positive().max(25).optional().description('the maximum number of entries to return'),
+  limit: Joi.number().positive().optional().description('the maximum number of entries to return'),
   location: {
     longitude: Joi.number().precision(8).min(-180).max(180).required().description('east-west'),
     latitude: Joi.number().precision(8).min(-90).max(90).required().description('north-south'),
@@ -156,13 +156,10 @@ v1.getEntryRegions = {
       const match = await entries.findOne({ privateID: privateID })
       if (!match) throw boom.notFound('no such entry: ' + privateID)
 
-      const matches = await regions.find({
-        geometry: {
-          $geoIntersects: {
-            $geometry: match.location
-          }
-        }
-      })
+      let limit = parseInt(request.query.limit, 10)
+      if (isNaN(limit)) limit = undefined
+
+      const matches = await regions.find({ geometry: { $geoIntersects: { $geometry: match.location } } }, { limit: limit })
 
       const result = []
       matches.forEach(match => { result.push(m2region(match, true)) })
@@ -177,7 +174,7 @@ v1.getEntryRegions = {
     mode: 'required'
   },
 
-  description: 'Get a particular entry',
+  description: 'Get regions containing a particular entry',
   tags: [ 'api' ],
 
   validate: {
@@ -205,11 +202,12 @@ v1.deleteEntry = {
 
       const debug = braveHapi.debug(module, request)
       const entries = runtime.database.get('entries', debug)
+      const regions = runtime.database.get('regions', debug)
 
       let match = await entries.findOne({ privateID: privateID })
       if (!match) throw boom.notFound('no such entry: ' + privateID)
 
-      const tags = await m2tags(runtime.database.get('regions', debug), match)
+      const tags = await m2tags(regions, match)
 
       const status = await entries.remove({ privateID: privateID }, { single: true })
       if ((!status.result) || (!status.result.ok)) throw boom.badImplementation('database deletion failed: ' + privateID)
@@ -252,6 +250,8 @@ v1.postEntry = {
 
       const debug = braveHapi.debug(module, request)
       const entries = runtime.database.get('entries', debug)
+      const regions = runtime.database.get('regions', debug)
+
       let match = await entries.findOne({ privateID: privateID })
       if (match) throw boom.badData('entry already exists: ' + privateID)
 
@@ -263,9 +263,9 @@ v1.postEntry = {
 
       const category = payload.category
       const location = { type: 'Point', coordinates: [ payload.location.longitude, payload.location.latitude ] }
-      let tags = await m2tags(runtime.database.get('regions', debug), { category: category, location: location })
+      let tags = await m2tags(regions, { category: category, location: location })
       if (tags.length === 0) {
-        tags = await m2tags(runtime.database.get('regions', debug), { location: location })
+        tags = await m2tags(regions, { location: location })
         if (tags.length === 0) throw boom.badData('invalid location: ' + JSON.stringify(payload.location))
 
         throw boom.badData('invalid category for known regions: ' + category)

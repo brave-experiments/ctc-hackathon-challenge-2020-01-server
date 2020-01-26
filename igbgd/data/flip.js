@@ -2,7 +2,7 @@ const fs = require('fs')
 
 const gp = require('../../node_modules/geojson-precision')
 
-const data = JSON.parse(fs.readFileSync('countries.geojson'))
+const data = JSON.parse(fs.readFileSync(0))
 
 data.features.forEach((feature) => {
   const geometry = feature.geometry
@@ -49,4 +49,4 @@ data.features.forEach((feature) => {
   feature.geometry = gp(geometry, 8)
 })
 
-console.log(JSON.stringify(data))
+console.log(JSON.stringify(data, null, 2))

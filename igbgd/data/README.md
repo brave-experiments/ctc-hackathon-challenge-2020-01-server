@@ -1,17 +1,19 @@
 # Initial Data Set
 
 # GEO JSON
-The file [countries.geojson](https://datahub.io/core/geo-countries/r/countries.geojson) was retrieved from this
-[site](https://datahub.io/core/geo-countries).
-For some reason,
-many [GeoJSON](https://geojson.org) files have the longitude/latitude flipped.
+You can find [GeoJSON](https://geojson.org) files [here](https://github.com/georgique/world-geojson).
+
+Sadly in many data sets,
+there is an endian-issue with the ordering of longitude and latitude.
 The ordering should be:
 
     [ longitude, latitude ]
     
-The `countries.json` file in this repository has the values in the correct order:
+but many datasets including the one above,
+flip the order.
+Hence:
 
-    node flip.js > countries.json
+    node flip.js < input.geojson > output.geojson
 
 A region file consists of a GEO JSON `Feature` object.
 For the `POST /v1/region` operation:
@@ -27,3 +29,7 @@ For the `POST /v1/region` operation:
     - `description` - a textual description
     
     - `categories` - an array of categories
+
+
+# Acknowledgements
+Thank you [@georgique](https://github.com/georgique).

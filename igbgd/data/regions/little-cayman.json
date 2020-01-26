@@ -1,62 +1,71 @@
-      {
-         "type" : "Feature",
-         "properties" : {
-            "ISO_A3" : "CYM",
-            "ADMIN" : "Cayman Islands"
-         },
-
-        "igbgd": {
-          "regionID": "igbgd.ky.little-cayman.green-iguana",
-          "description": "Little Cayman geography, Green Iguana category",
-          "categories": [ "green-iguana" ]
-        },
-         "geometry" : {
-            "type" : "MultiPolygon",
-            "coordinates" : [
+{
+   "type" : "Feature",
+   "properties" : {
+      "ISO_A3" : "CYM-LC",
+      "ADMIN" : "Cayman Islands"
+   },
+   "igbgd" : {
+      "regionID" : "igbgd.ky.little-cayman.green-iguana",
+      "description" : "Little Cayman geography, Green Iguana category",
+      "categories" : [
+         "green-iguana"
+      ]
+   },
+   "geometry" : {
+      "type" : "MultiPolygon",
+      "coordinates" : [
+         [
+            [
                [
-                  [
-                     [
-                        19.69091674,
-                        -79.85500066
-                     ],
-                     [
-                        19.67967276,
-                        -79.89375367
-                     ],
-                     [
-                        19.70463614,
-                        -79.87188918
-                     ],
-                     [
-                        19.73282666,
-                        -79.80283747
-                     ],
-                     [
-                        19.75203648,
-                        -79.7688987
-                     ],
-                     [
-                        19.75763084,
-                        -79.74589952
-                     ],
-                     [
-                        19.75210196,
-                        -79.73151608
-                     ],
-                     [
-                        19.73706338,
-                        -79.72664269
-                     ],
-                     [
-                        19.71336406,
-                        -79.77389264
-                     ],
-                     [
-                        19.69091674,
-                        -79.85500066
-                     ]
-                  ]
+                  19.66522002,
+                  -80.11985779
+               ],
+               [
+                  19.65228756,
+                  -80.11505127
+               ],
+               [
+                  19.65164091,
+                  -80.08483887
+               ],
+               [
+                  19.66457342,
+                  -80.04776001
+               ],
+               [
+                  19.68461676,
+                  -80.0038147
+               ],
+               [
+                  19.68978882,
+                  -79.96330261
+               ],
+               [
+                  19.70595045,
+                  -79.95025635
+               ],
+               [
+                  19.72340317,
+                  -79.9571228
+               ],
+               [
+                  19.71306105,
+                  -80.0189209
+               ],
+               [
+                  19.70401114,
+                  -80.05737305
+               ],
+               [
+                  19.68590979,
+                  -80.09170532
+               ],
+               [
+                  19.66522002,
+                  -80.11985779
                ]
             ]
-         }
-      }
+         ]
+      ]
+   }
+}
