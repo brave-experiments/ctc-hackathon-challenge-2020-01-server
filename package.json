@@ -100,6 +100,7 @@
     "epimetheus": "1.0.55",
     "ethereum-address": "0.0.4",
     "exposition": "^1.2.0",
+    "geojson-precision": "^1.0.0",
     "gridfs-stream": "1.1.1",
     "hapi-auth-bearer-token": "^6.1.1",
     "hapi-require-https": "^4.0.0",
