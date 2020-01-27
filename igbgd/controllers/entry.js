@@ -1,8 +1,8 @@
 const Joi = require('@hapi/joi')
+const bip39codec = require('bip39-codec')
 const boom = require('boom')
 const bson = require('bson')
 const imagesize = require('image-size')
-// const niceware = require('niceware')
 const underscore = require('underscore')
 const uuidV4 = require('uuid/v4')
 
@@ -18,7 +18,9 @@ const joikeys = {
   description: Joi.string().allow(''),
   entry: {
     privateID: Joi.string().guid().required().description('private identity of the entry'),
-    publicID: Joi.string().guid().required().description('public identity of the entry')
+    publicID: Joi.string().guid().required().description('public identity of the entry'),
+    // the regex is overkill...
+    id: Joi.string().pattern(/^[a-z]+( [a-z]+){12}$/).required().description('public identity of the entry as woards')
   },
   image: {
     data: Joi.string().base64().description('base64 encoding'),
@@ -37,7 +39,7 @@ const joikeys = {
 }
 underscore.extend(joikeys.entry, {
   category: joikeys.category.required(),
-  description: joikeys.description.optional(),
+  description: joikeys.description.required(),
   location: Joi.object().keys(joikeys.location).required(),
   image: Joi.object().keys(joikeys.image).required()
 })
@@ -167,7 +169,7 @@ v1.postEntry = {
   tags: [ 'api' ],
 
   validate: {
-    payload: Joi.object().keys(underscore.omit(joikeys.entry, [ 'publicID' ])).required()
+    payload: Joi.object().keys(underscore.omit(joikeys.entry, [ 'publicID', 'id' ])).required()
   },
 
   response: {
@@ -401,9 +403,15 @@ v1.getEntryRegions = {
 const m2entry = (match, regions) => {
   const entry = underscore.pick(match, underscore.keys(joikeys.entry))
   const coordinates = match.location.coordinates
+  const octets = []
 
   entry.location = { longitude: coordinates[0], latitude: coordinates[1] }
   if (coordinates.length > 2) entry.location.elevation = coordinates[2]
+
+  // cf., https://github.com/uuidjs/uuid/blob/master/lib/v35.js#L3
+  entry.publicID.replace(/[a-fA-F0-9]{2}/g, (hex) => { octets.push(parseInt(hex, 16)) })
+  // the BIP39 words tend to be shorter and easier to pronounce than niceware...
+  entry.id = bip39codec.encode(Buffer.from(octets))
 
   if (regions) {
     entry.image.data = '...'
@@ -430,17 +438,6 @@ const m2tags = async (regions, match) => {
 
   return tags
 }
-
-/*
-// cf., https://github.com/uuidjs/uuid/blob/master/lib/v35.js#L3
-const uuid2nice = (uuid) => {
-  const bytes = []
-
-  uuid.replace(/[a-fA-F0-9]{2}/g, (hex) => { bytes.push(parseInt(hex, 16)) })
-
-  return niceware.bytesToPassphrase(Buffer.from(bytes)).join(' ')
-}
- */
 
 module.exports.routes = [
   braveHapi.routes.async().path('/v1/entries/{shape}/{radius}').config(v1.getEntries),

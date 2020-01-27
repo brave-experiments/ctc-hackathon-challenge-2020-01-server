@@ -87,6 +87,7 @@
     "bat-publisher": "^2.0.24",
     "bat-utils": "file:./bat-utils",
     "bignumber.js": "^4.1.0",
+    "bip39-codec": "^1.1.0",
     "bitcoinjs-lib": "^3.2.0",
     "bluebird": "3.5.0",
     "boom": "5.2.0",

@@ -38,6 +38,9 @@ joikeys.region = underscore.extend({}, joikeys.igbgd, {
 v1.postRegion = {
   handler: (runtime) => {
     return async (request, h) => {
+      /* for future auditing...
+      const authority = request.auth.credentials.provider + ':' + request.auth.credentials.profile.username
+       */
       const payload = request.payload
       const regionID = payload.igbgd.regionID
 
