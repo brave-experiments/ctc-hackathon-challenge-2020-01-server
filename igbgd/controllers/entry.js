@@ -20,7 +20,7 @@ const joikeys = {
     privateID: Joi.string().guid().required().description('private identity of the entry'),
     publicID: Joi.string().guid().required().description('public identity of the entry'),
     // the regex is overkill...
-    id: Joi.string().pattern(/^[a-z]+( [a-z]+){12}$/).required().description('public identity of the entry as woards')
+    metadata: Joi.object().unknown().optional().description('extensible properties')
   },
   image: {
     data: Joi.string().base64().description('base64 encoding'),
@@ -169,7 +169,7 @@ v1.postEntry = {
   tags: [ 'api' ],
 
   validate: {
-    payload: Joi.object().keys(underscore.omit(joikeys.entry, [ 'publicID', 'id' ])).required()
+    payload: Joi.object().keys(underscore.omit(joikeys.entry, [ 'publicID', 'metadata' ])).required()
   },
 
   response: {
@@ -379,7 +379,7 @@ v1.getEntryRegions = {
 
   auth: {
     strategy: 'session',
-    scope: [ 'devops', 'readonly', 'reviwer' ],
+    scope: [ 'devops', 'readonly', 'reviewer' ],
     mode: 'required'
   },
 
@@ -411,7 +411,7 @@ const m2entry = (match, regions) => {
   // cf., https://github.com/uuidjs/uuid/blob/master/lib/v35.js#L3
   entry.publicID.replace(/[a-fA-F0-9]{2}/g, (hex) => { octets.push(parseInt(hex, 16)) })
   // the BIP39 words tend to be shorter and easier to pronounce than niceware...
-  entry.id = bip39codec.encode(Buffer.from(octets))
+  entry.metadata = { words: bip39codec.encode(Buffer.from(octets)) }
 
   if (regions) {
     entry.image.data = '...'

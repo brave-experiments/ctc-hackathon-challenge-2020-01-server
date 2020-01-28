@@ -110,7 +110,7 @@ v1.getRegion = {
 
   auth: {
     strategy: 'session',
-    scope: [ 'devops', 'readonly', 'reviwer' ],
+    scope: [ 'devops', 'readonly', 'reviewer' ],
     mode: 'required'
   },
 
@@ -258,7 +258,7 @@ v1.getRegionEntries = {
 
   auth: {
     strategy: 'session',
-    scope: [ 'devops', 'readonly', 'reviwer' ],
+    scope: [ 'devops', 'readonly', 'reviewer' ],
     mode: 'required'
   },
 
