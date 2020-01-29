@@ -90,9 +90,10 @@ Now go back to the Heroku `Settings` page for your application and add these con
 - `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SET` from the GitHub application you created
 - `GITHUB_FORCE_HTTPS` to `true`
 - `GITHUB_LOGIN_BYE` the URL where administrators are redirected when they logout from the Administrator site
-- `GITHUB_LOGIN_WORLD` to `/documentation`
+- `GITHUB_LOGIN_WORLD` to `/igbgd`
 - `GITHUB_ORG` the name of your GitHub organizational account
 - `IRON_KEYPASS` another pseudo-random string, e.g., a newly-generated UUIDv4 value
+- `MAPBOX_TOKEN`: your API key at [mapbox](https://mapbox.com)
 
 ## Administrator Roles
 Administrators are assigned roles by using GitHub Teams:
