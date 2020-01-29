@@ -7,7 +7,7 @@
       "categories" : [
          "green-iguana"
       ],
-      "view": { "center": [ 44.967243, -103.771556 ], "zoom": 3, "options": {} }
+      "view": { "center": [ 44.967243, -103.771556 ], "zoom": 3 }
    },
 "geometry":{
 "type":"MultiPolygon",
