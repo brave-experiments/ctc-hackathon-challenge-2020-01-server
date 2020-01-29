@@ -19,7 +19,6 @@ const joikeys = {
   entry: {
     privateID: Joi.string().guid().required().description('private identity of the entry'),
     publicID: Joi.string().guid().required().description('public identity of the entry'),
-    // the regex is overkill...
     metadata: Joi.object().unknown().optional().description('extensible properties')
   },
   image: {
@@ -411,7 +410,11 @@ const m2entry = (match, regions) => {
   // cf., https://github.com/uuidjs/uuid/blob/master/lib/v35.js#L3
   entry.publicID.replace(/[a-fA-F0-9]{2}/g, (hex) => { octets.push(parseInt(hex, 16)) })
   // the BIP39 words tend to be shorter and easier to pronounce than niceware...
-  entry.metadata = { words: bip39codec.encode(Buffer.from(octets)) }
+  entry.metadata = {
+    words: bip39codec.encode(Buffer.from(octets)),
+    created: new Date(parseInt(match._id.toHexString().substring(0, 8), 16) * 1000).getTime(),
+    modified: (match.timestamp.high_ * 1000) + (match.timestamp.low_ / bson.Timestamp.TWO_PWR_32_DBL_)
+  }
 
   if (regions) {
     entry.image.data = '...'

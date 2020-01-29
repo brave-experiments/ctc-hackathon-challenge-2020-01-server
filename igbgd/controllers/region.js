@@ -36,7 +36,8 @@ const joikeys = {
   limit: Joi.number().positive().optional().description('the maximum number of entries to return')
 }
 joikeys.region = underscore.extend({}, joikeys.igbgd, {
-  geometry: joikeys.geometry.required()
+  geometry: joikeys.geometry.required(),
+  metadata: Joi.object().unknown().optional().description('extensible properties')
 })
 
 /*
@@ -334,6 +335,11 @@ v1.getRegions = {
 
 const m2region = (match, fullP) => {
   const region = underscore.pick(match, underscore.keys(joikeys.region))
+
+  region.metadata = {
+    created: new Date(parseInt(match._id.toHexString().substring(0, 8), 16) * 1000).getTime(),
+    modified: (match.timestamp.high_ * 1000) + (match.timestamp.low_ / bson.Timestamp.TWO_PWR_32_DBL_)
+  }
 
   return (fullP ? region : underscore.omit(region, [ 'geometry' ]))
 }
