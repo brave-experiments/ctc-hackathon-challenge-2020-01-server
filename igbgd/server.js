@@ -25,5 +25,8 @@ const options = {
   controllers: controllers,
   module: module
 }
+options.routes.statics = [
+  { method: 'GET', path: '/igbgd/{param*}', handler: { directory: { path: './documentation/igbgd', index: 'index.html' } } }
+]
 
 module.exports = hapiServer(options, new Runtime(config))

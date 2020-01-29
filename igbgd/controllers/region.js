@@ -23,7 +23,15 @@ const joikeys = {
   igbgd: {
     regionID: Joi.string().domain({ allowUnicode: false, tlds: false }).required(),
     description: entrykeys.description.required(),
-    categories: Joi.array().items(entrykeys.category).unique().required()
+    categories: Joi.array().items(entrykeys.category).unique().required(),
+    view: Joi.object().keys({}).unknown().optional()
+    /*
+    view: Joi.object().keys({
+      center: Joi.array().items(entrykeys.location.longitude, entrykeys.location.latitude, entrykeys.location.elevation),
+      view: Joi.number().min(0).max(20),
+      options: Joi.object().keys({}).unknown().optional()
+    }).optional()
+     */
   },
   limit: Joi.number().positive().optional().description('the maximum number of entries to return')
 }
@@ -77,7 +85,7 @@ v1.postRegion = {
 
   validate: {
     payload: Joi.object().keys({
-      type: Joi.string().valid('Feature').optional(),
+      type: Joi.string().valid('Feature').required(),
       properties: Joi.object().keys({}).unknown().optional(),
       igbgd: Joi.object().keys(joikeys.igbgd).required(),
       geometry: joikeys.geometry.required()
@@ -175,7 +183,8 @@ v1.putRegion = {
     payload: Joi.object().keys({
       description: entrykeys.description.optional(),
       categories: Joi.array().items(entrykeys.category).unique().optional(),
-      geometry: joikeys.geometry.optional()
+      geometry: joikeys.geometry.optional(),
+      view: joikeys.igbgd.view
     }).required()
   },
 
@@ -279,6 +288,50 @@ v1.getRegionEntries = {
   }
 }
 
+/*
+  GET /v1/regions
+ */
+
+v1.getRegions = {
+  handler: (runtime) => {
+    return async (request, h) => {
+      const debug = braveHapi.debug(module, request)
+      const regions = runtime.database.get('regions', debug)
+
+      const matches = await regions.find()
+
+      const options = { mapbox_token: process.env.MAPBOX_TOKEN }
+
+      const result = []
+      matches.forEach(match => {
+        if (!match.view) return
+
+        if (!match.view.options) match.view.options = {}
+        underscore.defaults(match.view.options, options)
+        result.push(m2region(match))
+      })
+
+      return result
+    }
+  },
+
+  auth: {
+    strategy: 'session',
+    scope: [ 'devops', 'readonly', 'reviewer' ],
+    mode: 'required'
+  },
+
+  description: 'Get a particular region',
+  tags: [ 'api' ],
+
+  validate: {
+  },
+
+  response: {
+    schema: Joi.array().items(Joi.object().keys(underscore.omit(joikeys.region, [ 'geometry' ])))
+  }
+}
+
 const m2region = (match, fullP) => {
   const region = underscore.pick(match, underscore.keys(joikeys.region))
 
@@ -290,7 +343,8 @@ module.exports.routes = [
   braveHapi.routes.async().path('/v1/region/{regionID}').config(v1.getRegion),
   braveHapi.routes.async().put().path('/v1/region/{regionID}').config(v1.putRegion),
   braveHapi.routes.async().delete().path('/v1/region/{regionID}').config(v1.deleteRegion),
-  braveHapi.routes.async().path('/v1/region/{regionID}/entries').config(v1.getRegionEntries)
+  braveHapi.routes.async().path('/v1/region/{regionID}/entries').config(v1.getRegionEntries),
+  braveHapi.routes.async().path('/v1/regions').config(v1.getRegions)
 ]
 
 module.exports.initialize = async (debug, runtime) => {

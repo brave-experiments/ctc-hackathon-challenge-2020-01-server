@@ -1,15 +1,13 @@
 {
    "type" : "Feature",
-   "properties" : {
-      "ISO_A3" : "CYM",
-      "ADMIN" : "Cayman Islands"
-   },
+   "properties" : {},
    "igbgd" : {
       "regionID" : "igbgd.ky.grand-cayman.green-iguana",
       "description" : "Grand Cayman geography, Green Iguana category",
       "categories" : [
          "green-iguana"
       ]
+     "view": { "center": [ 19.536, -80.503 ], "zoom": 12, "options": {} },
    },
    "geometry" : {
       "type" : "MultiPolygon",

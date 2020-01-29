@@ -1,15 +1,13 @@
 {
    "type" : "Feature",
-   "properties" : {
-      "ISO_A3" : "CYM-LC",
-      "ADMIN" : "Cayman Islands"
-   },
+   "properties" : {},
    "igbgd" : {
       "regionID" : "igbgd.ky.little-cayman.green-iguana",
       "description" : "Little Cayman geography, Green Iguana category",
       "categories" : [
          "green-iguana"
-      ]
+      ],
+      "view": { "center": [ 19.700387, -80.036931 ], "zoom": 12, "options": {} }
    },
    "geometry" : {
       "type" : "MultiPolygon",

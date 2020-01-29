@@ -1,15 +1,13 @@
 {
    "type" : "Feature",
-   "properties" : {
-      "ISO_A3" : "CYM-CB",
-      "ADMIN" : "Cayman Islands"
-   },
+   "properties" : {},
    "igbgd" : {
       "regionID" : "igbgd.ky.cayman-brac.green-iguana",
       "description" : "Cayman Brac geography, Green Iguana category",
       "categories" : [
          "green-iguana"
-      ]
+      ],
+      "view": { "center": [ 19.734060, -79.802146 ], "zoom": 12, "options": {} }
    },
    "geometry" : {
       "type" : "MultiPolygon",

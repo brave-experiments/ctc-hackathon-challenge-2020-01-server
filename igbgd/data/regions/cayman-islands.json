@@ -1,15 +1,13 @@
 {
    "type" : "Feature",
-   "properties" : {
-      "ISO_A3" : "CYM",
-      "ADMIN" : "Cayman Islands"
-   },
+   "properties" : {},
    "igbgd" : {
       "regionID" : "igbgd.ky.green-iguana",
       "description" : "Cayman Islands geography, Green Iguana category",
       "categories" : [
          "green-iguana"
-      ]
+      ],
+      "view": { "center": [ 19.325, -81.305 ], "zoom": 12, "options": {} }
    },
    "geometry" : {
       "type" : "MultiPolygon",

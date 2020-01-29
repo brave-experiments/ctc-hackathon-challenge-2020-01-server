@@ -1,0 +1,196 @@
+<html>
+<head>
+<title>igbgd</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.6.0/dist/leaflet.css"
+      integrity="sha512-xwE/Az9zrjBIphAcBb3F6JVqxf46+CDLwfLMHloNu6KEQCAWi6HcDUbeOfBIptF7tcCzusKFjFw2yuvEpDL9wQ=="
+      crossorigin=""/>
+ <script src="https://unpkg.com/leaflet@1.6.0/dist/leaflet.js"
+         integrity="sha512-gZwIG9x3wUXg2hdXF6+rVkLF/0Vi9U8D2Ntg4Ga5I5BZpVkVxlJWbSQtXPSiUTtC0TjtGOmxa1AJPuV0CPthew=="
+         crossorigin=""></script>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js"></script>
+
+<style>
+#mapid { height: 720px; }
+</style>
+</head>
+
+<body>
+
+<div id='mapid'>
+<script type="text/javascript">
+const config = {
+  interval: 30 * 1000
+}
+
+const features = {}
+const underscore = _
+
+let map
+let firstP = true
+
+const init = () => {
+  const URL = window.location.origin + '/v1/regions'
+  $.get(URL).done((regions) => {
+    let choice
+
+    if (regions.length === 0) {
+      alert('no regions defined, retrying...')
+      return setTimeout(init, 5 * 1000)
+    }
+
+    regions.forEach((region) => {
+      if (region.regionID === 'igbgd.ky.green-iguana') choice = region
+    })
+    if (!choice) choice = regions[0]
+
+    config.URL = window.location.origin + '/v1/region/' + choice.regionID+ '/entries'
+    underscore.extend(config, choice)
+    console.log('!!! init: ' + JSON.stringify(config, null, 2))
+    setTimeout(init2, 0)
+  }).fail((jqXHR, statusText, errorText) => {
+    alert(JSON.stringify(jqXHR, null, 2))
+    setTimeout(init, 5 * 1000)
+  })
+}
+
+const init2 = () => {
+  map = L.map('mapid').setView(config.view.center, config.view.zoom)
+/*
+  cf., https://docs.mapbox.com/api/maps/#mapbox-styles
+
+  id: 'mapbox/streets-v11'
+  id: 'mapbox/navigation-preview-day-v4'
+  id: 'mapbox/navigation-guidance-day-v4'
+ */
+  L.tileLayer(`https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token=${config.view.options.mapbox_token}`, {
+    maxZoom: 18,
+    attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, ' +
+                 '<a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, ' +
+                 'Imagery &copy; <a href="https://www.mapbox.com/">Mapbox</a>, &hellip; ' +
+                 '<a href="' + window.location.origin + '/documentation" target="_blank">igbgd console</a>',
+    id: 'mapbox/outdoors-v11'
+  }).addTo(map)
+
+
+/* for future consideration:
+
+   https://github.com/slutske22/leaflet-popup-modifier
+
+   https://github.com/domoritz/leaflet-locatecontrol
+   https://github.com/nickpeihl/leaflet-sidebar-v2/
+   https://github.com/utahemre/Leaflet.GeoJSONAutocomplete
+   https://github.com/yafred/leaflet-responsive-popup
+ */
+
+  setTimeout(fetchFeatures, 0)
+}
+
+const fetchFeatures = () => {
+  $.get(config.URL).done((entries) => {
+    console.log('!!! ' + entries.length + ' matches.')
+    underscore.keys(features).forEach((id) => {
+      features[id].properties.seenP = false
+    })
+
+    let dropP = false
+    entries.forEach((entry) => {
+      if ((!firstP) && (!dropP)) {
+        dropP = true
+        return
+      }
+
+      let feature
+      let newP = false
+
+      if (features[entry.publicID]) {
+        feature = features[entry.publicID]
+        const marker = feature.properties.leaflet.marker
+
+        if (feature.properties.description !== entry.description) {
+          console.log('description changed: ' + feature.properties.description + ' vs. ' + entry.description)
+
+          feature.properties.description = entry.description
+          marker.bindPopup(feature.properties.description || 'no description')
+        }
+
+        const image = entry.image
+        if (!underscore.isEqual(feature.properties.image, image)) {
+          console.log('image changed')
+
+          feature.properties.image = image
+          marker.setIcon(L.icon({
+            iconUrl: 'data:image/' + entry.image.format + ';base64,' + entry.image.data,
+            iconSize: [ 24, 24 ],
+            iconAnchor: [ 0, 0 ],
+            popupAnchor: [ 12, 0 ]
+          }))
+        }
+
+        const coordinates = [ entry.location.longitude, entry.location.latitude ]
+        if (!underscore.isEqual(feature.geometry.coordinates, coordinates)) {
+          console.log('coordinates changed: ' + JSON.stringify(feature.geometry.coordinates) + ' vs. ' +
+                      JSON.stringify(entry.location))
+
+          feature.geometry.coordinates = coordinates
+          marker.setLatLng(coordinates)
+        }
+      } else {
+        newP = true
+
+        feature = {
+          type: 'feature',
+          geometry: { type: 'Point', coordinates: [ entry.location.longitude, entry.location.latitude ] },
+          properties: underscore.extend(underscore.omit(entry, [ 'location' ]), { leaflet: { }})
+        }
+        
+        features[entry.publicID] = feature
+        console.log('add ' + JSON.stringify(feature, null, 2))
+        const marker = L.marker(feature.geometry.coordinates, {
+          icon: L.icon({
+            iconUrl: 'data:image/' + entry.image.format + ';base64,' + entry.image.data,
+            iconSize: [ 24, 24 ],
+            iconAnchor: [ 0, 0 ],
+            popupAnchor: [ 12, 0 ]
+          })
+        }).addTo(map)
+        feature.properties.leaflet.marker = marker
+        marker.bindPopup(feature.properties.description || 'no description')
+      }
+
+      features[entry.publicID].properties.seenP = true
+    })
+
+    underscore.keys(features).forEach((id) => {
+      feature = features[id]
+
+      if (!feature.properties.seenP) {
+        console.log('remove ' + JSON.stringify(underscore.omit(feature, [ 'properties' ]), null, 2))
+
+        map.removeLayer(feature.properties.leaflet.marker)
+        delete features[id]
+      }
+    })
+
+    firstP = false
+    setTimeout(fetchFeatures, config.interval)
+  }).fail((jqXHR, statusText, errorText) => {
+// TBD: do something here later on...
+    console.log('!!! fail: jqXHR=' + JSON.stringify(jqXHR, null, 2))
+
+    setTimeout(fetchFeatures, config.interval)
+  })
+}
+
+$(() => {
+  console.log('!!! loaded.')
+  init()
+})
+</script>
+</div>
+</body>
+</html>

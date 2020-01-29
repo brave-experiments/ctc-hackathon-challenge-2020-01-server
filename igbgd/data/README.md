@@ -35,3 +35,6 @@ For the `POST /v1/region` operation:
 Thank you [@georgique](https://github.com/georgique).
 
 Also, I find it useful to use [geojson.io](http://geojson.io) to quickly view GEO JSON data.
+
+I'm also a big fan of [geojson-regions](https://geojson-maps.ash.ms/).
+Thank you [AshKyd](https://github.com/AshKyd).

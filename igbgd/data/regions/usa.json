@@ -6,7 +6,8 @@
       "description" : "United States, Green Iguana category",
       "categories" : [
          "green-iguana"
-      ]
+      ],
+      "view": { "center": [ 44.967243, -103.771556 ], "zoom": 3, "options": {} }
    },
 "geometry":{
 "type":"MultiPolygon",

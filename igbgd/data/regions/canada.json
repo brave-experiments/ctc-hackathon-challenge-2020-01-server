@@ -6,7 +6,8 @@
       "description" : "Canada, Green Iguana category",
       "categories" : [
          "green-iguana"
-      ]
+      ],
+      "view": { "center": [ 61, -95 ], "zoom": 3, "options": {} }
    },
 "geometry":{
 "type":"MultiPolygon",

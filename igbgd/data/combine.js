@@ -48,4 +48,4 @@ console.log(JSON.stringify({
   type: 'Feature',
   properties: {},
   geometry: { type: 'MultiPolygon', coordinates: polygons }
-}, null, 2))
+}, null, 0))
