@@ -157,7 +157,7 @@ v1.putRegion = {
       }
 
       const status = await regions.update({ regionID: regionID }, state, { upsert: false })
-      if (!status.result.ok) throw boom.badImplementation('database update failed: ' + regionID)
+      if (!status.ok) throw boom.badImplementation('database update failed: ' + regionID)
 
       const match = await regions.findOne({ regionID: regionID })
       if (!match) throw boom.notFound('no such region: ' + regionID)
