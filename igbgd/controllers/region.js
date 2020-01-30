@@ -322,7 +322,7 @@ v1.getRegions = {
     mode: 'required'
   },
 
-  description: 'Get a particular region',
+  description: 'Get all regions',
   tags: [ 'api' ],
 
   validate: {
