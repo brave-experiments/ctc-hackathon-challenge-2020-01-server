@@ -182,8 +182,8 @@ v1.putRegion = {
       regionID: joikeys.region.regionID
     }).required(),
     payload: Joi.object().keys({
-      description: entrykeys.description.optional(),
       categories: Joi.array().items(entrykeys.category).unique().optional(),
+      description: entrykeys.description.optional(),
       geometry: joikeys.geometry.optional(),
       view: joikeys.igbgd.view
     }).required()
@@ -336,10 +336,10 @@ v1.getRegions = {
 const m2region = (match, fullP) => {
   const region = underscore.pick(match, underscore.keys(joikeys.region))
 
-  region.metadata = {
+  region.metadata = underscore.extend(match.metadata || {}, {
     created: new Date(parseInt(match._id.toHexString().substring(0, 8), 16) * 1000).getTime(),
     modified: (match.timestamp.high_ * 1000) + (match.timestamp.low_ / bson.Timestamp.TWO_PWR_32_DBL_)
-  }
+  })
 
   return (fullP ? region : underscore.omit(region, [ 'geometry' ]))
 }
