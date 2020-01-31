@@ -79,8 +79,6 @@ const init2 = () => {
 
 /* for future consideration:
 
-   https://github.com/slutske22/leaflet-popup-modifier
-
    https://github.com/domoritz/leaflet-locatecontrol
    https://github.com/nickpeihl/leaflet-sidebar-v2/
    https://github.com/utahemre/Leaflet.GeoJSONAutocomplete
@@ -97,29 +95,31 @@ const fetchFeatures = () => {
       features[id].properties.seenP = false
     })
 
-    let dropP = false
+    let dropP = true
     entries.forEach((entry) => {
       if ((!firstP) && (!dropP)) {
         dropP = true
         return
       }
 
-      let feature
-      let newP = false
+      let feature, marker
+      let newP = false,
+          updateP = false
 
       if (features[entry.publicID]) {
         feature = features[entry.publicID]
-        const marker = feature.properties.leaflet.marker
+        marker = feature.properties.leaflet.marker
 
         if (feature.properties.description !== entry.description) {
+          updateP = true
           console.log('description changed: ' + feature.properties.description + ' vs. ' + entry.description)
 
           feature.properties.description = entry.description
-          marker.bindPopup(feature.properties.description || 'no description')
         }
 
         const image = entry.image
         if (!underscore.isEqual(feature.properties.image, image)) {
+          updateP = true
           console.log('image changed')
 
           feature.properties.image = image
@@ -150,7 +150,7 @@ const fetchFeatures = () => {
         
         features[entry.publicID] = feature
         console.log('add ' + JSON.stringify(feature, null, 2))
-        const marker = L.marker(feature.geometry.coordinates, {
+        marker = L.marker(feature.geometry.coordinates, {
           icon: L.icon({
             iconUrl: 'data:image/' + entry.image.format + ';base64,' + entry.image.data,
             iconSize: [ 24, 24 ],
@@ -159,9 +159,15 @@ const fetchFeatures = () => {
           })
         }).addTo(map)
         feature.properties.leaflet.marker = marker
-        marker.bindPopup(feature.properties.description || 'no description')
+
       }
 
+      if (newP || updateP) {
+        const popupMarkup = feature.properties.description || 'no description'
+        const popupOptions = {}
+
+        marker.bindPopup(popupMarkup, popupOptions)
+      }
       features[entry.publicID].properties.seenP = true
     })
 
