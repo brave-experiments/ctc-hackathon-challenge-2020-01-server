@@ -57,7 +57,8 @@ v1.getEntries = {
             $geometry: { type: 'Point', coordinates: [ query.longitude, query.latitude ] },
             $maxDistance: Math.ceil(request.params.radius * 1.25)
           }
-        }
+        },
+        approved: true
       }
 
       const category = query.category
@@ -142,6 +143,9 @@ v1.postEntry = {
           publicID: publicID,
           category: category,
           location: location,
+          // next two temporary for now...
+          approved: 'true',
+          authority: 'automatic',
           timestamp: bson.Timestamp()
         }))
       } catch (ex) {
@@ -414,7 +418,7 @@ const m2entry = (match, regions) => {
     words: bip39codec.encode(Buffer.from(octets)),
     created: new Date(parseInt(match._id.toHexString().substring(0, 8), 16) * 1000).getTime(),
     modified: (match.timestamp.high_ * 1000) + (match.timestamp.low_ / bson.Timestamp.TWO_PWR_32_DBL_)
-  })
+  }, underscore.pick(match, [ 'approved', 'authority' ]))
 
   if (regions) {
     entry.image.data = '...'
@@ -468,10 +472,12 @@ module.exports.initialize = async (debug, runtime) => {
         privateID: '',
         category: '',
         description: '',
+        approved: false,
+        authority: '',
         timestamp: bson.Timestamp.ZERO
       },
       unique: [ { publicID: 1 }, { privateID: 1 } ],
-      others: [ { category: 1 }, { timestamp: 1 } ],
+      others: [ { category: 1 }, { approved: 1 }, { authority: 1 }, { timestamp: 1 } ],
       raw: [ { location: '2dsphere' } ]
     }
   ])
