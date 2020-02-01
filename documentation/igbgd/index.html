@@ -15,7 +15,11 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js"></script>
 
 <style>
-#mapid { height: 720px; }
+#mapid   { height: 720px; }
+table    { width: 350px; }
+td       { vertical-align: top; }
+td.key   { width: 100px; }
+td.photo { text-align: center; width: 350px; }
 </style>
 </head>
 
@@ -48,6 +52,10 @@ const init = () => {
     config.URL = window.location.origin + '/v1/region/' + choice.regionID+ '/entries'
     underscore.extend(config, choice)
     console.log('!!! init: ' + JSON.stringify(config, null, 2))
+    if ((!config.view.options.google_token) && (!config.view.options.google_token)) {
+      return alert('fatal! neither Google nor mapbox configured')
+    }
+
     setTimeout(init2, 0)
   }).fail((jqXHR, statusText, errorText) => {
     alert('fatal! unable to fetch regions: ' + JSON.stringify(jqXHR, null, 2))
@@ -56,21 +64,35 @@ const init = () => {
 
 const init2 = () => {
   map = L.map('mapid').setView([ config.view.center.latitude, config.view.center.longitude ], config.view.zoom)
-/*
-  cf., https://docs.mapbox.com/api/maps/#mapbox-styles
 
-  id: 'mapbox/streets-v11'
-  id: 'mapbox/navigation-preview-day-v4'
-  id: 'mapbox/navigation-guidance-day-v4'
- */
-  L.tileLayer(`https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token=${config.view.options.mapbox_token}`, {
-    maxZoom: 18,
+  const google_options = {
+    attribution: '<a href="' + window.location.origin + '/documentation" target="_blank">igbgd console</a>',
+    subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+  }
+
+  const mapbox_options = {
     attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, ' +
                  '<a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, ' +
                  'Imagery &copy; <a href="https://www.mapbox.com/">Mapbox</a>, &hellip; ' +
                  '<a href="' + window.location.origin + '/documentation" target="_blank">igbgd console</a>',
+
+/*
+    cf., https://docs.mapbox.com/api/maps/#mapbox-styles
+
+    id: 'mapbox/streets-v11'
+    id: 'mapbox/navigation-preview-day-v4'
+    id: 'mapbox/navigation-guidance-day-v4'
+ */
     id: 'mapbox/outdoors-v11'
-  }).addTo(map)
+  }
+
+  if (config.view.options.google_token) {
+    L.tileLayer(`http://{s}.google.com/vt/lyrs=p&x={x}&y={y}&z={z}?key=${config.view.options.google_token}`,
+                underscore.extend({ maxZoom: 18 }, google_options)).addTo(map)
+  } else {
+    L.tileLayer(`https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token=${config.view.options.mapbox_token}`,
+                underscore.extend({ maxZoom: 18 }, mapbox_options)).addTo(map)
+  }
 
   setTimeout(fetchFeatures, 0)
 }
@@ -89,6 +111,8 @@ const fetchFeatures = () => {
         return
       }
 
+      const photo = 'data:image/' + entry.image.format + ';base64,' + entry.image.data;
+
       let feature, marker
       let newP = false,
           updateP = false
@@ -104,14 +128,14 @@ const fetchFeatures = () => {
           feature.properties.description = entry.description
         }
 
-        const image = entry.image
-        if (!underscore.isEqual(feature.properties.image, image)) {
+        if (!underscore.isEqual(feature.properties.image, entry.image)) {
           updateP = true
           console.log('image changed')
 
           feature.properties.image = image
+          feature.properties.leaflet = photo
           marker.setIcon(L.icon({
-            iconUrl: 'data:image/' + entry.image.format + ';base64,' + entry.image.data,
+            iconUrl: photo,
             iconSize: [ 24, 24 ],
             iconAnchor: [ 0, 0 ],
             popupAnchor: [ 12, 0 ]
@@ -132,29 +156,26 @@ const fetchFeatures = () => {
         feature = {
           type: 'feature',
           geometry: { type: 'Point', coordinates: [ entry.location.latitude, entry.location.longitude ] },
-          properties: underscore.extend(underscore.omit(entry, [ 'location' ]), { leaflet: { }})
+          properties: underscore.extend(underscore.omit(entry, [ 'location' ]), {
+            leaflet: { photo: photo }
+          })
         }
         
         features[entry.publicID] = feature
         console.log('add ' + JSON.stringify(feature, null, 2))
         marker = L.marker(feature.geometry.coordinates, {
           icon: L.icon({
-            iconUrl: 'data:image/' + entry.image.format + ';base64,' + entry.image.data,
+            iconUrl: photo,
             iconSize: [ 24, 24 ],
             iconAnchor: [ 0, 0 ],
             popupAnchor: [ 12, 0 ]
           })
         }).addTo(map)
         feature.properties.leaflet.marker = marker
-
       }
 
-      if (newP || updateP) {
-        const popupMarkup = feature.properties.description || 'no description'
-        const popupOptions = {}
+      if (newP || updateP) fetchLocation(feature)
 
-        marker.bindPopup(popupMarkup, popupOptions)
-      }
       features[entry.publicID].properties.seenP = true
     })
 
@@ -177,6 +198,85 @@ const fetchFeatures = () => {
 
     setTimeout(fetchFeatures, config.interval)
   })
+}
+
+const fetchLocation = (feature) => {
+  const b = (s) => {
+    return s.replace(/, /g, '<br/>')
+  }
+
+  const marker = feature.properties.leaflet.marker
+  const photo = feature.properties.leafletphoto
+
+  const latitude = feature.geometry.coordinates[0]
+  const longitude = feature.geometry.coordinates[1]
+  const working = '<i>working...</i>'
+
+  let popupMarkup = '<div class="popup">'
+          + '<table>' 
+          + '<tr><td colspan="2">'
+          +     (feature.properties.description || 'no description')
+          + '</td></tr><tr><td class="key">'
+          +     'Estimated Location:</td><td>' + working
+          + '</td></tr><tr><td class="key">'
+          +     'Longitude:</td><td>' + longitude
+          + '</td></tr><tr><td class="key">'
+          +     'Latitude:</td><td>' + latitude
+          + '</td></tr><tr><td class="key">'
+          +     'Created:</td><td>' + b(new Date(feature.properties.metadata.created).toLocaleString())
+          + '</td></tr><tr><td class="key">'
+          + '</td></tr><tr><td class="photo" colspan="2">'
+          +     '<img src="' + feature.properties.leaflet.photo + '" />'
+          + '</td></tr>'
+
+  if (feature.properties.metadata.created !== feature.properties.metadata.modified) {
+    popupMarkup += '<tr><td class="key">'
+                +     'Modified:</td><td>' + new Date(feature.properties.metadata.modified).toLocaleString()
+                + '</td></tr>'
+  }
+  if (feature.properties.metadata.authority) {
+    popupMarkup += '<tr><td>'
+                +     'Authority:</td><td>' + underscore.escape(feature.properties.metadata.authority)
+                + '</td></tr>'
+  }
+  popupMarkup += '</table></div>'
+  feature.properties.leaflet.popupMarkup = popupMarkup
+
+  marker.bindPopup(feature.properties.leaflet.popupMarkup)
+
+  if (config.view.options.google_token) {
+    $.get(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&result_type=subpremise|premise|street_address|point_of_interest&key=${config.view.options.google_token}`).done((result) => {
+      const choices = {}
+
+      if ((result.status !== 'OK') || (!result.results)) return
+
+      result.results.forEach((result) => {
+        result.types.forEach((type) => {
+          choices[type] = result.formatted_address
+        })
+      })
+
+      const choice = choices.subpremise || choices.premise || choices.street_address || choices.point_of_interest || 'unknown'
+      feature.properties.leaflet.popupMarkup = feature.properties.leaflet.popupMarkup.replace(working, b(choice))
+      marker.bindPopup(feature.properties.leaflet.popupMarkup)
+    })
+  } else {
+    $.get(`https://api.mapbox.com/geocoding/v5/mapbox.places/${longitude},${latitude}.json?types=locality,neighborhood,address,poi&access_token=${config.view.options.mapbox_token}`).done((result) => {
+      const choices = {}
+
+      if (!result.features) return console.log(JSON.stringify(result, null, 2))
+
+      result.features.forEach((feature) => {
+        feature.place_type.forEach((type) => {
+          choices[type] = feature.place_name
+        })
+      })
+
+      const choice = choices.subpremise || choices.locality || 'unknown'
+      feature.properties.leaflet.popupMarkup = feature.properties.leaflet.popupMarkup.replace(working, b(choice))
+      marker.bindPopup(feature.properties.leaflet.popupMarkup)
+    })
+  }
 }
 
 $(() => {

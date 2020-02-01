@@ -301,7 +301,7 @@ v1.getRegions = {
 
       const matches = await regions.find()
 
-      const options = { mapbox_token: process.env.MAPBOX_TOKEN }
+      const options = { google_token: process.env.GOOGLE_TOKEN, mapbox_token: process.env.MAPBOX_TOKEN }
 
       const result = []
       matches.forEach(match => {
