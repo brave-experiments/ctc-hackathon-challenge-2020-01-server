@@ -38,10 +38,7 @@ const init = () => {
   $.get(URL).done((regions) => {
     let choice
 
-    if (regions.length === 0) {
-      alert('no regions defined, retrying...')
-      return setTimeout(init, 5 * 1000)
-    }
+    if (regions.length === 0) return alert('fatal! no regions defined')
 
     regions.forEach((region) => {
       if (region.regionID === 'igbgd.ky.green-iguana') choice = region
@@ -53,8 +50,7 @@ const init = () => {
     console.log('!!! init: ' + JSON.stringify(config, null, 2))
     setTimeout(init2, 0)
   }).fail((jqXHR, statusText, errorText) => {
-    alert(JSON.stringify(jqXHR, null, 2))
-    setTimeout(init, 5 * 1000)
+    alert('fatal! unable to fetch regions: ' + JSON.stringify(jqXHR, null, 2))
   })
 }
 
@@ -75,15 +71,6 @@ const init2 = () => {
                  '<a href="' + window.location.origin + '/documentation" target="_blank">igbgd console</a>',
     id: 'mapbox/outdoors-v11'
   }).addTo(map)
-
-
-/* for future consideration:
-
-   https://github.com/domoritz/leaflet-locatecontrol
-   https://github.com/nickpeihl/leaflet-sidebar-v2/
-   https://github.com/utahemre/Leaflet.GeoJSONAutocomplete
-   https://github.com/yafred/leaflet-responsive-popup
- */
 
   setTimeout(fetchFeatures, 0)
 }
