@@ -69,7 +69,6 @@ v1.getEntries = {
       let limit = parseInt(query.limit, 10)
       if (isNaN(limit) || (limit > 512)) limit = 512
 
-      debug('getEntries', { query: find, options: { limit: limit } })
       const matches = await entries.find(find, { limit: limit })
 
       const result = []

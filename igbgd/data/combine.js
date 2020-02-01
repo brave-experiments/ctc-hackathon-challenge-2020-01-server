@@ -1,5 +1,7 @@
 const fs = require('fs')
 
+const gp = require('../../node_modules/geojson-precision')
+
 const data = JSON.parse(fs.readFileSync(0))
 
 const polygons = []
@@ -18,7 +20,7 @@ data.features.forEach((feature) => {
           const inner = []
 
           linestring.forEach((position) => {
-            inner.unshift(position)
+            inner.push(position)
           })
           outer.push(inner)
         })
@@ -47,5 +49,5 @@ data.features.forEach((feature) => {
 console.log(JSON.stringify({
   type: 'Feature',
   properties: {},
-  geometry: { type: 'MultiPolygon', coordinates: polygons }
+  geometry: gp({ type: 'MultiPolygon', coordinates: polygons }, 8)
 }, null, 0))

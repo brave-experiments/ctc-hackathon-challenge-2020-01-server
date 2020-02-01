@@ -13,7 +13,7 @@ but many datasets including the one above,
 flip the order.
 Hence:
 
-    node flip.js < input.geojson > output.geojson
+    node combine.js < input.geojson > output.json
 
 A region file consists of a GEO JSON `Feature` object.
 For the `POST /v1/region` operation:

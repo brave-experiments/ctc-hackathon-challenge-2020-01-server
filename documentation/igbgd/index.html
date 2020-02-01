@@ -59,7 +59,7 @@ const init = () => {
 }
 
 const init2 = () => {
-  map = L.map('mapid').setView(config.view.center, config.view.zoom)
+  map = L.map('mapid').setView([ config.view.center.latitude, config.view.center.longitude ], config.view.zoom)
 /*
   cf., https://docs.mapbox.com/api/maps/#mapbox-styles
 
@@ -131,7 +131,7 @@ const fetchFeatures = () => {
           }))
         }
 
-        const coordinates = [ entry.location.longitude, entry.location.latitude ]
+        const coordinates = [ entry.location.latitude, entry.location.longitude ]
         if (!underscore.isEqual(feature.geometry.coordinates, coordinates)) {
           console.log('coordinates changed: ' + JSON.stringify(feature.geometry.coordinates) + ' vs. ' +
                       JSON.stringify(entry.location))
@@ -144,7 +144,7 @@ const fetchFeatures = () => {
 
         feature = {
           type: 'feature',
-          geometry: { type: 'Point', coordinates: [ entry.location.longitude, entry.location.latitude ] },
+          geometry: { type: 'Point', coordinates: [ entry.location.latitude, entry.location.longitude ] },
           properties: underscore.extend(underscore.omit(entry, [ 'location' ]), { leaflet: { }})
         }
         
