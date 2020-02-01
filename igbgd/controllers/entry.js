@@ -482,6 +482,9 @@ module.exports.initialize = async (debug, runtime) => {
     }
   ])
 
+  const entries = runtime.database.get('entries', debug)
+  entries.update({}, { $set: { approved: true, authority: 'automatic' } }, { multi: true })
+
   const region = require('./region.js')
   m2region = region.m2region
 }

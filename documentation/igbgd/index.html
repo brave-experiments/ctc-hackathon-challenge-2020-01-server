@@ -255,6 +255,9 @@ const fetchLocation = (feature) => {
                 +     'Modified:</td><td>' + new Date(feature.properties.metadata.modified).toLocaleString()
                 + '</td></tr>'
   }
+  popupMarkup += '<tr><td>'
+              +     'Approved:</td><td>' + feature.properties.metadata.approved
+              + '</td></tr>'
   if (feature.properties.metadata.authority) {
     popupMarkup += '<tr><td>'
                 +     'Authority:</td><td>' + underscore.escape(feature.properties.metadata.authority)
