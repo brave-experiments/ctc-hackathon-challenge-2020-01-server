@@ -16,7 +16,7 @@
 
 <style>
 #mapid   { height: 720px; }
-table    { width: 350px; }
+table    { width: 360px; }
 td       { vertical-align: top; }
 td.key   { width: 100px; }
 td.photo { text-align: center; width: 350px; }
@@ -123,17 +123,17 @@ const fetchFeatures = () => {
 
         if (feature.properties.description !== entry.description) {
           updateP = true
-          console.log('description changed: ' + feature.properties.description + ' vs. ' + entry.description)
+          console.log('!!! description changed: ' + feature.properties.description + ' vs. ' + entry.description)
 
           feature.properties.description = entry.description
         }
 
         if (!underscore.isEqual(feature.properties.image, entry.image)) {
           updateP = true
-          console.log('image changed')
+          console.log('!!! image changed')
 
-          feature.properties.image = image
-          feature.properties.leaflet = photo
+          feature.properties.image = entry.image
+          feature.properties.leaflet.photo = photo
           marker.setIcon(L.icon({
             iconUrl: photo,
             iconSize: [ 24, 24 ],
@@ -144,7 +144,7 @@ const fetchFeatures = () => {
 
         const coordinates = [ entry.location.latitude, entry.location.longitude ]
         if (!underscore.isEqual(feature.geometry.coordinates, coordinates)) {
-          console.log('coordinates changed: ' + JSON.stringify(feature.geometry.coordinates) + ' vs. ' +
+          console.log('!!! coordinates changed: ' + JSON.stringify(feature.geometry.coordinates) + ' vs. ' +
                       JSON.stringify(entry.location))
 
           feature.geometry.coordinates = coordinates
@@ -162,7 +162,7 @@ const fetchFeatures = () => {
         }
         
         features[entry.publicID] = feature
-        console.log('add ' + JSON.stringify(feature, null, 2))
+        console.log('!!! add ' + JSON.stringify(feature, null, 2))
         marker = L.marker(feature.geometry.coordinates, {
           icon: L.icon({
             iconUrl: photo,
@@ -183,7 +183,7 @@ const fetchFeatures = () => {
       feature = features[id]
 
       if (!feature.properties.seenP) {
-        console.log('remove ' + JSON.stringify(underscore.omit(feature, [ 'properties' ]), null, 2))
+        console.log('!!! remove ' + JSON.stringify(underscore.omit(feature, [ 'properties' ]), null, 2))
 
         map.removeLayer(feature.properties.leaflet.marker)
         delete features[id]
@@ -202,12 +202,18 @@ const fetchFeatures = () => {
 
 // Entry details popup...
 const fetchLocation = (feature) => {
-  const b = (s) => {
-    return s.replace(/, /g, '<br/>')
-  }
+  const b = (s) => { return underscore.escape(s).replace(/, /g, '<br/>') }
 
   const marker = feature.properties.leaflet.marker
-  const photo = feature.properties.leafletphoto
+  const photo = feature.properties.leaflet.photo
+  const maxwidth = 240
+
+  let width = feature.properties.image.width
+  let height = feature.properties.image.height
+  if (width > maxwidth) {
+    height = Math.round(height * (maxwidth / width))
+    width = maxwidth
+  }
 
   const latitude = feature.geometry.coordinates[0]
   const longitude = feature.geometry.coordinates[1]
@@ -216,7 +222,7 @@ const fetchLocation = (feature) => {
   let popupMarkup = '<div class="popup">'
           + '<table>' 
           + '<tr><td colspan="2">'
-          +     (feature.properties.description || 'no description')
+          +     underscore.escape(feature.properties.description || 'no description')
           + '</td></tr><tr><td class="key">'
           +     'Estimated Location:</td><td>' + working
           + '</td></tr><tr><td class="key">'
@@ -225,11 +231,7 @@ const fetchLocation = (feature) => {
           +     'Latitude:</td><td>' + latitude
           + '</td></tr><tr><td class="key">'
           +     'Created:</td><td>' + b(new Date(feature.properties.metadata.created).toLocaleString())
-          + '</td></tr><tr><td class="key">'
-          + '</td></tr><tr><td class="photo" colspan="2">'
-          +     '<img src="' + feature.properties.leaflet.photo + '" />'
-          + '</td></tr>'
-
+      + '</td></tr>'
   if (feature.properties.metadata.created !== feature.properties.metadata.modified) {
     popupMarkup += '<tr><td class="key">'
                 +     'Modified:</td><td>' + new Date(feature.properties.metadata.modified).toLocaleString()
@@ -240,7 +242,11 @@ const fetchLocation = (feature) => {
                 +     'Authority:</td><td>' + underscore.escape(feature.properties.metadata.authority)
                 + '</td></tr>'
   }
-  popupMarkup += '</table></div>'
+  popupMarkup += '<tr><td class="key">'
+          + '</td></tr><tr><td class="photo" colspan="2">'
+          +     '<img src="' + photo + '" width="' + width + '" height="' + height + '" />'
+          + '</td></tr>'
+          + '</table></div>'
   feature.properties.leaflet.popupMarkup = popupMarkup
 
   marker.bindPopup(feature.properties.leaflet.popupMarkup)
@@ -249,7 +255,7 @@ const fetchLocation = (feature) => {
     $.get(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&result_type=subpremise|premise|street_address|point_of_interest&key=${config.view.options.google_token}`).done((result) => {
       const choices = {}
 
-      if ((result.status !== 'OK') || (!result.results)) return
+      if ((result.status !== 'OK') || (!result.results)) return console.log('!!! ' + JSON.stringify(result, null, 2))
 
       result.results.forEach((result) => {
         result.types.forEach((type) => {
@@ -265,7 +271,7 @@ const fetchLocation = (feature) => {
     $.get(`https://api.mapbox.com/geocoding/v5/mapbox.places/${longitude},${latitude}.json?types=locality,neighborhood,address,poi&access_token=${config.view.options.mapbox_token}`).done((result) => {
       const choices = {}
 
-      if (!result.features) return console.log(JSON.stringify(result, null, 2))
+      if (!result.features) return console.log('!!!' + JSON.stringify(result, null, 2))
 
       result.features.forEach((feature) => {
         feature.place_type.forEach((type) => {
