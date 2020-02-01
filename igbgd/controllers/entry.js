@@ -57,8 +57,7 @@ v1.getEntries = {
             $geometry: { type: 'Point', coordinates: [ query.longitude, query.latitude ] },
             $maxDistance: Math.ceil(request.params.radius * 1.25)
           }
-        },
-        approved: true
+        }
       }
 
       const category = query.category
