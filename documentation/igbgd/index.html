@@ -87,7 +87,7 @@ const init2 = () => {
   }
 
   if (config.view.options.google_token) {
-    L.tileLayer(`http://{s}.google.com/vt/lyrs=p&x={x}&y={y}&z={z}?key=${config.view.options.google_token}`,
+    L.tileLayer(`https://{s}.google.com/vt/lyrs=p&x={x}&y={y}&z={z}?key=${config.view.options.google_token}`,
                 underscore.extend({ maxZoom: 18 }, google_options)).addTo(map)
   } else {
     L.tileLayer(`https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token=${config.view.options.mapbox_token}`,
