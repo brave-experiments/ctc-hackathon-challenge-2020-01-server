@@ -146,7 +146,7 @@ async function Server (options, runtime) {
         allowMultipleHeaders: false,
         allowChaining: true,
         validate: (request, token, h) => {
-          const scope = ['devops', 'ledger', 'QA']
+          const scope = process.env.GITHUB_TEAMS ? process.env.GITHUB_TEAMS.split(',') : ['devops', 'ledger', 'QA']
           const tokenlist = process.env.TOKEN_LIST ? process.env.TOKEN_LIST.split(',') : []
           const isValid = typeof token === 'string' && braveHapi.isSimpleTokenValid(tokenlist, token)
           return {
@@ -248,7 +248,7 @@ async function Server (options, runtime) {
   })
 
   server.events.on('log', (event, tags) => {
-    if (!event.data) {
+    if ((!event.data) || event.data === 'undefined') {
       console.log('!!!')
       debug('log', { stack: (new Error()).stack })
       return console.log('!!!')

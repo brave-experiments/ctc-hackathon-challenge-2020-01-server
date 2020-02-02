@@ -92,6 +92,7 @@ Now go back to the Heroku `Settings` page for your application and add these con
 - `GITHUB_LOGIN_BYE` the URL where administrators are redirected when they logout from the Administrator site
 - `GITHUB_LOGIN_WORLD` to `/igbgd`
 - `GITHUB_ORG` the name of your GitHub organizational account
+- `GITHUB_TEAMS` to `devops,readonly,reviewer`
 - `IRON_KEYPASS` another pseudo-random string, e.g., a newly-generated UUIDv4 value
 - `GOOGLE_TOKEN`: your API key at [Google](https://developers.google.com/maps/documentation/geocoding/get-api-key)
 - `MAPBOX_TOKEN`: your API key at [mapbox](https://mapbox.com)
