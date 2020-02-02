@@ -57,7 +57,8 @@ v1.getEntries = {
             $geometry: { type: 'Point', coordinates: [ query.longitude, query.latitude ] },
             $maxDistance: Math.ceil(request.params.radius * 1.25)
           }
-        }
+        },
+        approved: true
       }
 
       const category = query.category
@@ -143,7 +144,7 @@ v1.postEntry = {
           category: category,
           location: location,
           // next two temporary for now...
-          approved: 'true',
+          approved: true,
           authority: 'automatic',
           timestamp: bson.Timestamp()
         }))
